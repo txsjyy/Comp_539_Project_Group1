@@ -1,0 +1,6 @@
+runtime: java17
+entrypoint: java -jar target/clientapi-0.0.1-SNAPSHOT.jar
+service: comp-413-clientapi
+service_account: comp-413-clientapi@rice-comp-539-spring-2022.iam.gserviceaccount.com
+env_variables:
+  GOOGLE_APPLICATION_CREDENTIALS: rice-comp-539-spring-2022-a81a5e720341.json
