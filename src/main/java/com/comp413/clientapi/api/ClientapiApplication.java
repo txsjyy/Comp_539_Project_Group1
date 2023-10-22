@@ -1,4 +1,4 @@
-package com.comp413.clientapi;
+package com.comp413.clientapi.api;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
