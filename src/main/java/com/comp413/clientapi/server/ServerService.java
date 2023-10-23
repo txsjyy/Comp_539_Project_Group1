@@ -182,6 +182,12 @@ public class ServerService {
         );
     }
 
+    /**
+     * Get portfolio value from DB.
+     *
+     * @param sessionId     Session cookie of logged-in user.
+     * @return              Valuation of portfolio.
+     */
     public ResponseEntity<String> getPFValue(String sessionId) {
         return new ResponseEntity<>(HttpStatus.NOT_IMPLEMENTED);
     }

@@ -20,6 +20,10 @@ public class ClientApiController {
      */
     private final ServerService serverService;
 
+    /**
+     * Constructor for API Controller that passes requests to a server instance.
+     * @param serverService     Instance of server handling business logic of requests.
+     */
     @Autowired
     public ClientApiController(ServerService serverService) {
         this.serverService = serverService;
@@ -130,6 +134,7 @@ public class ClientApiController {
     /**
      * Query for all of a user's open orders (pending orders).
      *
+     * @param sessionId     Session cookie of logged-in user.
      * @return a list of order objects are returned. They are serialized into JSON upon receipt.
      */
     @GetMapping("/dashboard/getOrderHistory/{sessionId}")
