@@ -15,7 +15,7 @@ import java.net.http.*;
  */
 @RestController
 @RequestMapping("api")
-public class ClientapiController {
+public class ClientApiController {
 
     /**
      * URL to where the server routes FinSim requests

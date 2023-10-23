@@ -8,7 +8,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
  * when deployed and hosting the API.
  */
 @SpringBootApplication
-public class ClientapiApplication {
+public class ClientApiApplication {
 
     /**
      *
@@ -16,7 +16,7 @@ public class ClientapiApplication {
      * @param args command-line args (unused)
      */
     public static void main(String[] args) {
-        SpringApplication.run(ClientapiApplication.class, args);
+        SpringApplication.run(ClientApiApplication.class, args);
     }
 
 }

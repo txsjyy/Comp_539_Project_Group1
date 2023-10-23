@@ -16,7 +16,7 @@
     <properties>
         <java.version>17</java.version>
         <start-class>
-            com.comp413.clientapi.api.ClientapiApplication
+            com.comp413.clientapi.api.ClientApiApplication
         </start-class>
     </properties>
     <dependencies>
