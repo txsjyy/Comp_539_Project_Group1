@@ -59,26 +59,26 @@ public class ClientApiController {
         String body = request.toString();
         body = body.substring(0, body.length()-1);
         // TODO: handle timestamp in server
-        body += "\"registrationTimestamp\": " + timestamp + "\",";
+        body += ", \"registrationTimestamp\": \"" + timestamp + "\"";
         // TODO: handle portfolio ID generation in DB
-        body += "\"portfolioId\": \"" + portfolioId + "\"";
+        body += ", \"portfolioId\": \"" + portfolioId + "\"";
         // Enclose JSON format in ending bracket
         body += "}";
 
         HttpClient client = HttpClient.newHttpClient();
 
         HttpRequest req = HttpRequest.newBuilder()
-                .uri(URI.create(db_url + "/database/users/storeUser"))
+                .uri(URI.create(db_url + "database/users/storeUser"))
                 .header("Content-Type", "application/json")
                 .POST(HttpRequest.BodyPublishers.ofString(body))
                 .build();
 
         try {
             HttpResponse<String> response = client.send(req, HttpResponse.BodyHandlers.ofString());
-            System.out.println(
-                    "Registered user\n" + request +
-                    "\n[" + response.statusCode() + "] " + response.body());
-            return new ResponseEntity<>(response.body(), HttpStatus.CREATED);
+            String logstring = "Registered user\n" + body +
+                    "\n[" + response.statusCode() + "] " + response.body();
+            System.out.println(logstring);
+            return new ResponseEntity<>(logstring, HttpStatus.CREATED);
         } catch (Exception e) {
             e.printStackTrace();
             return new ResponseEntity<>("Registering the user failed.", HttpStatus.BAD_REQUEST);
@@ -104,7 +104,7 @@ public class ClientApiController {
         HttpClient client = HttpClient.newHttpClient();
 
         HttpRequest req = HttpRequest.newBuilder()
-                .uri(URI.create(fin_sim_url + "/api/v0/place-market-order/"))
+                .uri(URI.create(fin_sim_url + "api/v0/place-market-order/"))
                 .header("Content-Type", "application/json")
                 .POST(HttpRequest.BodyPublishers.ofString(request.toString()))
                 .build();
@@ -129,7 +129,7 @@ public class ClientApiController {
      * @param symbol The symbol of the relevant asset (e.g., stock ticker GOOG)
      * @return an object holding the data of the stock. It is serialized into JSON upon receipt.
      */
-    @GetMapping("dashboard/getStock")
+    @GetMapping("/dashboard/getStock")
     public ResponseEntity<Object> getStock(@RequestBody String symbol) {
         String timeEarliest = "";
         return new ResponseEntity<>(HttpStatus.OK);
@@ -141,7 +141,7 @@ public class ClientApiController {
      * @param sessionId cookie
      * @return A list of transaction objects are returned. They are serialized into JSON upon receipt.
      */
-    @GetMapping("dashboard/getTransactionHistory/{sessionId}")
+    @GetMapping("/dashboard/getTransactionHistory/{sessionId}")
     public ResponseEntity<Object> getTransactionHistory(@PathVariable String sessionId) {
 //        HttpClient client = HttpClient.newHttpClient();
 //

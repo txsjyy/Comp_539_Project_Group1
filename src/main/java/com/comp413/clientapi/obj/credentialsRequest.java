@@ -24,10 +24,10 @@ public record credentialsRequest(
     public String toString() {
         return "{" +
                 "\"username\":\"" + username + '\"' +
-                ", \"password:\"" + password + '\"' +
-                ", \"email:\"" + email + '\"' +
-                ", \"firstName:\"" + firstName + '\"' +
-                ", \"lastName:\"" + lastName + '\"' +
+                ", \"password\":\"" + password + '\"' +
+                ", \"email\":\"" + email + '\"' +
+                ", \"firstName\":\"" + firstName + '\"' +
+                ", \"lastName\":\"" + lastName + '\"' +
 //                ", \"registrationTimestamp:\"" + registrationTimestamp + '\"' +
 //                ", \"portfolioId:\"" + portfolioId + '\"' +
                 '}';
