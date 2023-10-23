@@ -3,28 +3,27 @@ package com.comp413.clientapi.api;
 import com.comp413.clientapi.obj.credentialsRequest;
 import com.comp413.clientapi.obj.marketOrderRequest;
 
-import org.springframework.http.HttpStatus;
+import com.comp413.clientapi.server.ServerService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.net.URI;
-import java.net.http.*;
-
 /**
- * Requests are routed through here.
+ * Requests are made here and routed through the server.
  */
 @RestController
 @RequestMapping("api")
 public class ClientApiController {
 
     /**
-     * URL to where the server routes FinSim requests
+     * Service that performs the business logic of request handling - "The Server".
      */
-    String fin_sim_url = "https://comp-413-finsim-dot-rice-comp-539-spring-2022.uk.r.appspot.com/";
-    /**
-     * URL to where the server routes Database requests
-     */
-    String db_url = "https://comp-413-db-dot-rice-comp-539-spring-2022.uk.r.appspot.com/api/";
+    private final ServerService serverService;
+
+    @Autowired
+    public ClientApiController(ServerService serverService) {
+        this.serverService = serverService;
+    }
 
     /**
      * When providing matching credentials (username, password), a user is granted access to all the services in the
@@ -35,10 +34,8 @@ public class ClientApiController {
      * @return Upon successful login (currently this is EVERY login) the response yields a 200 OK status.
      */
     @PostMapping("/login/login")
-    public ResponseEntity<Object> login(@RequestBody credentialsRequest request) {
-
-//            return new ResponseEntity<>("No such combination of username and password", HttpStatus.BAD_REQUEST);
-        return new ResponseEntity<>("Login Successful", HttpStatus.OK);
+    public ResponseEntity<String> login(@RequestBody credentialsRequest request) {
+        return serverService.login(request);
     }
 
     /**
@@ -51,39 +48,8 @@ public class ClientApiController {
      * of an already-existing user.
      */
     @PostMapping("/login/register")
-    public ResponseEntity<Object> register(@RequestBody credentialsRequest request) {
-
-        String timestamp = java.time.ZonedDateTime.now().toString();
-        String portfolioId = "tempId";
-        // Append necessary items to response body
-        String body = request.toString();
-        body = body.substring(0, body.length()-1);
-        // TODO: handle timestamp in server
-        body += ", \"registrationTimestamp\": \"" + timestamp + "\"";
-        // TODO: handle portfolio ID generation in DB
-        body += ", \"portfolioId\": \"" + portfolioId + "\"";
-        // Enclose JSON format in ending bracket
-        body += "}";
-
-        HttpClient client = HttpClient.newHttpClient();
-
-        HttpRequest req = HttpRequest.newBuilder()
-                .uri(URI.create(db_url + "database/users/storeUser"))
-                .header("Content-Type", "application/json")
-                .POST(HttpRequest.BodyPublishers.ofString(body))
-                .build();
-
-        try {
-            HttpResponse<String> response = client.send(req, HttpResponse.BodyHandlers.ofString());
-            String logstring = "Registered user\n" + body +
-                    "\n[" + response.statusCode() + "] " + response.body();
-            System.out.println(logstring);
-            return new ResponseEntity<>(logstring, HttpStatus.CREATED);
-        } catch (Exception e) {
-            e.printStackTrace();
-            return new ResponseEntity<>("Registering the user failed.", HttpStatus.BAD_REQUEST);
-        }
-//            return new ResponseEntity<>("Cannot register a new user under provided username: such a user already exists", HttpStatus.CONFLICT);
+    public ResponseEntity<String> register(@RequestBody credentialsRequest request) {
+        return serverService.register(request);
     }
 
     /**
@@ -100,28 +66,24 @@ public class ClientApiController {
      * @return If the order is successful, the response yields a brief message and a 201 CREATED status.
      */
     @PostMapping("/order/marketOrder")
-    public ResponseEntity<Object> marketOrder(@RequestBody marketOrderRequest request) {
-        HttpClient client = HttpClient.newHttpClient();
-
-        HttpRequest req = HttpRequest.newBuilder()
-                .uri(URI.create(fin_sim_url + "api/v0/place-market-order/"))
-                .header("Content-Type", "application/json")
-                .POST(HttpRequest.BodyPublishers.ofString(request.toString()))
-                .build();
-
-        try {
-            HttpResponse<String> response = client.send(req, HttpResponse.BodyHandlers.ofString());
-
-            System.out.println(
-                    "Placed market order\n" + request +
-                    "\n[" + response.statusCode() + "] " + response.body());
-            return new ResponseEntity<>(response.body(),HttpStatus.CREATED);
-        } catch (Exception e) {
-            e.printStackTrace();
-            return new ResponseEntity<>("Making an order failed.", HttpStatus.BAD_REQUEST);
-        }
+    public ResponseEntity<String> marketOrder(@RequestBody marketOrderRequest request) {
+        return serverService.placeMarketOrder(request);
     }
 
+    @DeleteMapping("/order/cancelOrder/{sessionId}&{orderId}")
+    public ResponseEntity<String> cancelOrder(@PathVariable String sessionId, @PathVariable String orderId) {
+        return serverService.cancelOrder(sessionId, orderId);
+    }
+
+    @GetMapping("dashboard/getPFValue/{sessionId}")
+    public ResponseEntity<String> getPFValue(@PathVariable String sessionId) {
+        return serverService.getPFValue(sessionId);
+    }
+
+    @GetMapping("dashboard/getCash/{sessionId}")
+    public ResponseEntity<String> getCash(@PathVariable String sessionId) {
+        return serverService.getCash(sessionId);
+    }
 
     /**
      * Fetch data regarding an entity with the provided symbol.
@@ -130,9 +92,8 @@ public class ClientApiController {
      * @return an object holding the data of the stock. It is serialized into JSON upon receipt.
      */
     @GetMapping("/dashboard/getStock")
-    public ResponseEntity<Object> getStock(@RequestBody String symbol) {
-        String timeEarliest = "";
-        return new ResponseEntity<>(HttpStatus.OK);
+    public ResponseEntity<String> getStock(@RequestBody String symbol) {
+        return serverService.getStock(symbol);
     }
 
     /**
@@ -142,26 +103,8 @@ public class ClientApiController {
      * @return A list of transaction objects are returned. They are serialized into JSON upon receipt.
      */
     @GetMapping("/dashboard/getTransactionHistory/{sessionId}")
-    public ResponseEntity<Object> getTransactionHistory(@PathVariable String sessionId) {
-//        HttpClient client = HttpClient.newHttpClient();
-//
-//        HttpRequest req = HttpRequest.newBuilder()
-//                .uri(URI.create(db_url + "/database/getOrders"))
-//                .header("Content-Type", "application/json")
-//                .GET(HttpRequest.BodyPublishers.ofString(request.toString()))
-//                .build();
-//
-//        try {
-//            HttpResponse<String> response = client.send(req, HttpResponse.BodyHandlers.ofString());
-//
-//            System.out.println("Response Code: " + response.statusCode());
-//            System.out.println("Response Body: " + response.body());
-//            return new ResponseEntity<>(response.body(),HttpStatus.OK);
-//        } catch (Exception e) {
-//            e.printStackTrace();
-//            return new ResponseEntity<>("Fetching the transaction history failed.", HttpStatus.BAD_REQUEST);
-//        }
-        return new ResponseEntity<>(HttpStatus.NOT_IMPLEMENTED);
+    public ResponseEntity<String> getTransactionHistory(@PathVariable String sessionId) {
+        return serverService.getTransactionHistory(sessionId);
     }
 
     /**
@@ -169,10 +112,13 @@ public class ClientApiController {
      *
      * @return a list of order objects are returned. They are serialized into JSON upon receipt.
      */
-    @GetMapping("dashboard/getOrderHistory")
-    public ResponseEntity<Object> getOrderHistory() {
-        return new ResponseEntity<>(HttpStatus.NOT_IMPLEMENTED);
+    @GetMapping("dashboard/getOrderHistory/{sessionId}")
+    public ResponseEntity<String> getOrderHistory(@PathVariable String sessionId) {
+        return serverService.getOrderHistory(sessionId);
     }
 
-
+    @GetMapping("dashboard/getHoldings/{sessionId}")
+    public ResponseEntity<String> getHoldings(@PathVariable String sessionId) {
+        return serverService.getHoldings(sessionId);
+    }
 }
