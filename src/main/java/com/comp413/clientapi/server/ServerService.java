@@ -2,22 +2,26 @@ package com.comp413.clientapi.server;
 
 import com.comp413.clientapi.obj.credentialsRequest;
 import com.comp413.clientapi.obj.marketOrderRequest;
-import org.springframework.beans.factory.annotation.Autowired;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.boot.web.servlet.server.Session;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
+import javax.xml.datatype.Duration;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.random.RandomGenerator;
 import java.util.Random;
 
 /**
- * This is a mock server to hold minimal state for now. NOT USED CURRENTLY.
+ * This is the server to hold state and handle requests.
  */
 @Service
 public class ServerService {
@@ -34,18 +38,36 @@ public class ServerService {
      * Map of SessionId (cookie) to portfolioId (unique users). Maintains data on logged-in users.
      */
     final Map<String, String> ONLINE_MAP = new HashMap<>();
+    /**
+     * Random state for generating cookies.
+     */
     final Random RANDOM = new Random(0xC413);
+    /**
+     * HTTP client for sending messages.
+     */
     final HttpClient CLIENT = HttpClient.newHttpClient();
 
     /**
      * No-arg server constructor.
      */
-    @Autowired
     public ServerService() {}
 
+    /**
+     * Log a user in provided matching credentials. A cookie header is returned to the requester.
+     *
+     * @param request   Necessary info to create a new user.
+     * @return          Upon successful login, a brief message with a 200 OK status code is returned. A cookie is
+     *                  contained within the response.
+     */
     public ResponseEntity<String> login(credentialsRequest request) {
-        String timestamp = java.time.ZonedDateTime.now().toString();
+
+        if (!authenticate(request.username(), request.password()))
+            return new ResponseEntity<>("Failed to log user in - credentials did not match.", HttpStatus.BAD_REQUEST);
+
+        java.time.ZonedDateTime time = java.time.ZonedDateTime.now();
+        String timestamp = time.toString();
         String portfolioId = "tempId";
+        String cookieValue = portfolioId + "-" + RANDOM.nextLong() + "-" + time.format(DateTimeFormatter.ISO_ZONED_DATE_TIME);
         // Append necessary items to response body
         String body = request.toString();
         body = body.substring(0, body.length()-1);
@@ -56,16 +78,54 @@ public class ServerService {
         // Enclose JSON format in ending bracket
         body += "}";
 
-//        return handleRequest(
-//
-//        );
-        return new ResponseEntity<>("Login Successful!", HttpStatus.OK);
+        // TODO: figure out how to compare a user/pass pair to those in DB w/o requesting full data.
+        HttpRequest req = HttpRequest.newBuilder()
+                .uri(URI.create(db_url + "database/users"))
+                .header("Content-Type", "application/json")
+                .POST(HttpRequest.BodyPublishers.ofString(body))
+                .build();
 
+        try {
+            HttpResponse<String> response = CLIENT.send(req, HttpResponse.BodyHandlers.ofString());
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.add("Set-Cookie", "STSESSIONID=" + cookieValue + "; Max-Age=3600");
+
+            String logstring = "Registered user\n" + body +
+                    "\n[" + response.statusCode() + "] " + response.body();
+            System.out.println(logstring);
+            return ResponseEntity.status(HttpStatus.OK)
+                    .headers(headers)
+                    .body("Login Successful!");
+        } catch (Exception e) {
+            e.printStackTrace();
+            return new ResponseEntity<>("Failed to log user in - server issue.", HttpStatus.INTERNAL_SERVER_ERROR);
+        }
     }
 
+    /**
+     * Authenticate a user given their username-password pair.
+     *
+     * @param username      Unique username.
+     * @param password      Matching password.
+     * @return              If authentication is successful, true is returned; else, false.
+     */
+    private boolean authenticate(String username, String password) {
+        return true;
+    }
+
+
+    /**
+     * Register a user. The user's portfolioId is its unique identifier (for the time being - this setup must change).
+     * Upon collision of this unique identifier, the registration will not proceed and the user's data will not be
+     * updated or overwritten.
+     *
+     * @param request   Necessary info to create a new user.
+     * @return          Upon successful registration, a brief message with a 201 CREATED status code is returned.
+     */
     public ResponseEntity<String> register(credentialsRequest request) {
         String timeNow = timestamp();
-        String portfolioId = String.valueOf(RANDOM.nextLong());
+        String portfolioId = generateCookie();
         // Append necessary items to response body
         String body = request.toString();
         body = body.substring(0, body.length()-1);
@@ -85,6 +145,13 @@ public class ServerService {
 //            return new ResponseEntity<>("Cannot register a new user under provided username: such a user already exists", HttpStatus.CONFLICT);
     }
 
+    /**
+     * Cancel an order.
+     *
+     * @param sessionId     Session cookie of logged-in user.
+     * @param orderId       Unique identifier associated with an order.
+     * @return              Upon success, a brief message with a 200 OK code is returned.
+     */
     public ResponseEntity<String> cancelOrder(String sessionId, String orderId) {
         // use sessionId to ping DB if that user has order? or just pass to finsim
 
@@ -99,6 +166,12 @@ public class ServerService {
         );
     }
 
+    /**
+     * Place a market order.
+     *
+     * @param request   All the necessary information needed to process a market order.
+     * @return          Upon success, a brief message with a 201 CREATED code is returned.
+     */
     public ResponseEntity<String> placeMarketOrder(marketOrderRequest request) {
         return handleRequest(
                 fin_sim_url + "api/v0/place-market-order/",
@@ -113,10 +186,22 @@ public class ServerService {
         return new ResponseEntity<>(HttpStatus.NOT_IMPLEMENTED);
     }
 
+    /**
+     * Returns total cash held in user's account.
+     *
+     * @param sessionId     Session cookie of logged-in user.
+     * @return              Cash in user's account.
+     */
     public ResponseEntity<String> getCash(String sessionId) {
         return new ResponseEntity<>(HttpStatus.NOT_IMPLEMENTED);
     }
 
+    /**
+     * Request the database for an individual stock's data.
+     *
+     * @param symbol    Symbol of asset for which data are requested.
+     * @return          If asset exists, the response contained data pertinent to the symbol.
+     */
     public ResponseEntity<String> getStock(String symbol) {
         String body = "";
 
@@ -129,6 +214,12 @@ public class ServerService {
         );
     }
 
+    /**
+     * Get transaction data for a logged-in user from the database.
+     *
+     * @param sessionId Session cookie of logged-in user.
+     * @return          List of (completed) transactions associated with the user.
+     */
     public ResponseEntity<String> getTransactionHistory(String sessionId) {
         String body = "";
 
@@ -141,6 +232,12 @@ public class ServerService {
         );
     }
 
+    /**
+     * Get order data for a logged-in user from the database.
+     *
+     * @param sessionId Session cookie of logged-in user.
+     * @return          List of (pending) orders associated with the user.
+     */
     public ResponseEntity<String> getOrderHistory(String sessionId) {
         String body = "";
 
@@ -153,6 +250,12 @@ public class ServerService {
         );
     }
 
+    /**
+     * List all assets held by a user.
+     *
+     * @param sessionId Session cookie of logged-in user.
+     * @return  list of held assets.
+     */
     public ResponseEntity<String> getHoldings(String sessionId) {
         String portfolioId = ONLINE_MAP.get(sessionId);
 
@@ -196,13 +299,17 @@ public class ServerService {
         }
     }
 
+    /**
+     * Make zoned timestamp.
+     * @return  A zoned timestamp.
+     */
     String timestamp() {
         return java.time.ZonedDateTime.now().toString();
     }
 
     /**
      * Get the portfolioId associated with a given cookie.
-     * @param sessionId cookie
+     * @param sessionId Session cookie of logged-in user.
      * @return portfolioId
      */
     public String getCookieValue(String sessionId) {
@@ -227,7 +334,7 @@ public class ServerService {
 
     /**
      * Remove a cookie. This should occur when the server is notified that the cookie expired.
-     * @param sessionId cookie
+     * @param sessionId Session cookie of logged-in user.
      */
     public void removeCookie(String sessionId) {
         ONLINE_MAP.remove(sessionId);
@@ -236,10 +343,9 @@ public class ServerService {
     /**
      * Generate a cookie
      *
-     * @return A String cookie
+     * @return Session cookie of logged-in user.
      */
     private String generateCookie() {
-        return "cookie";
+        return String.valueOf(RANDOM.nextLong());
     }
-
 }
