@@ -115,8 +115,8 @@ public class ClientApiController {
      * @param symbol The symbol of the relevant asset (e.g., stock ticker GOOG)
      * @return an object holding the data of the stock. It is serialized into JSON upon receipt.
      */
-    @GetMapping("/dashboard/getStock")
-    public ResponseEntity<String> getStock(@RequestBody String symbol) {
+    @GetMapping("/dashboard/getStock/{symbol}")
+    public ResponseEntity<String> getStock(@PathVariable String symbol) {
         return serverService.getStock(symbol);
     }
 

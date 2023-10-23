@@ -2,15 +2,11 @@ package com.comp413.clientapi.server;
 
 import com.comp413.clientapi.obj.credentialsRequest;
 import com.comp413.clientapi.obj.marketOrderRequest;
-import jakarta.servlet.http.Cookie;
-import jakarta.servlet.http.HttpServletResponse;
-import org.springframework.boot.web.servlet.server.Session;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
-import javax.xml.datatype.Duration;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -45,12 +41,14 @@ public class ServerService {
     /**
      * HTTP client for sending messages.
      */
-    final HttpClient CLIENT = HttpClient.newHttpClient();
+    final HttpClient CLIENT;
 
     /**
      * No-arg server constructor.
      */
-    public ServerService() {}
+    public ServerService() {
+        CLIENT = HttpClient.newHttpClient();
+    }
 
     /**
      * Log a user in provided matching credentials. A cookie header is returned to the requester.
@@ -66,8 +64,7 @@ public class ServerService {
 
         java.time.ZonedDateTime time = java.time.ZonedDateTime.now();
         String timestamp = time.toString();
-        String portfolioId = "tempId";
-        String cookieValue = portfolioId + "-" + RANDOM.nextLong() + "-" + time.format(DateTimeFormatter.ISO_ZONED_DATE_TIME);
+        String portfolioId = String.valueOf(RANDOM.nextLong());
         // Append necessary items to response body
         String body = request.toString();
         body = body.substring(0, body.length()-1);
@@ -88,10 +85,12 @@ public class ServerService {
         try {
             HttpResponse<String> response = CLIENT.send(req, HttpResponse.BodyHandlers.ofString());
 
+            String cookieValue = portfolioId + "-" + RANDOM.nextLong() + "-" + time.format(DateTimeFormatter.ISO_ZONED_DATE_TIME);
+            ONLINE_MAP.put(cookieValue, portfolioId);
             HttpHeaders headers = new HttpHeaders();
             headers.add("Set-Cookie", "STSESSIONID=" + cookieValue + "; Max-Age=3600");
 
-            String logstring = "Registered user\n" + body +
+            String logstring = "User logged in successfully.\n" + body +
                     "\n[" + response.statusCode() + "] " + response.body();
             System.out.println(logstring);
             return ResponseEntity.status(HttpStatus.OK)
@@ -125,7 +124,7 @@ public class ServerService {
      */
     public ResponseEntity<String> register(credentialsRequest request) {
         String timeNow = timestamp();
-        String portfolioId = generateCookie();
+        String portfolioId = String.valueOf(RANDOM.nextLong());
         // Append necessary items to response body
         String body = request.toString();
         body = body.substring(0, body.length()-1);
@@ -136,9 +135,10 @@ public class ServerService {
         // Enclose JSON format in ending bracket
         body += "}";
 
-        return handleRequest(
+        return handlePostRequest(
                 db_url + "database/users/storeUser",
                 body,
+                "User successfully registered.",
                 HttpStatus.CREATED,
                 "Failed to register the user.",
                 HttpStatus.BAD_REQUEST);
@@ -156,10 +156,9 @@ public class ServerService {
         // use sessionId to ping DB if that user has order? or just pass to finsim
 
         String portfolioId = ONLINE_MAP.get(sessionId);
-        return handleRequest(
+        return handleDeleteRequest(
                 fin_sim_url + "/api/v0/cancel-order/" + orderId,
-                null,
-//                HttpStatus.valueOf(299),    // custom code for good delete?
+                "Order successfully cancelled.",
                 HttpStatus.OK,
                 "Failed to cancel the requested order " + orderId,
                 HttpStatus.BAD_REQUEST
@@ -173,9 +172,10 @@ public class ServerService {
      * @return          Upon success, a brief message with a 201 CREATED code is returned.
      */
     public ResponseEntity<String> placeMarketOrder(marketOrderRequest request) {
-        return handleRequest(
+        return handlePostRequest(
                 fin_sim_url + "api/v0/place-market-order/",
                 request.toString(),
+                "Market order successfully placed.",
                 HttpStatus.CREATED,
                 "Failed to make an order.",
                 HttpStatus.BAD_REQUEST
@@ -209,29 +209,35 @@ public class ServerService {
      * @return          If asset exists, the response contained data pertinent to the symbol.
      */
     public ResponseEntity<String> getStock(String symbol) {
-        String body = "";
-
-        return handleRequest(
-                db_url + "database/",
-                body,
+//        return handleGetRequest(
+//                db_url + "database/getStock/" + symbol,
+//                "Stock data successfully retrieved.",
+//                HttpStatus.OK,
+//                "Failed to fetch stock data for requested asset: " + symbol,
+//                HttpStatus.BAD_REQUEST
+//        );
+        // pass params for requested data
+        return handleGetRequest(
+                fin_sim_url + "api/v0/get-asset-price/" + symbol,
+                "Stock data successfully retrieved.",
                 HttpStatus.OK,
                 "Failed to fetch stock data for requested asset: " + symbol,
                 HttpStatus.BAD_REQUEST
         );
+//        return new ResponseEntity<>(HttpStatus.NOT_IMPLEMENTED);
     }
 
     /**
-     * Get transaction data for a logged-in user from the database.
+     * Get transaction data for a logged-in user from the database. CURRENTLY just fetches (pending) orders.
      *
      * @param sessionId Session cookie of logged-in user.
      * @return          List of (completed) transactions associated with the user.
      */
     public ResponseEntity<String> getTransactionHistory(String sessionId) {
-        String body = "";
-
-        return handleRequest(
-                db_url + "database/getOrders",
-                body,
+        String portfolioId = ONLINE_MAP.get(sessionId);
+        return handleGetRequest(
+                db_url + "database/getOrders/" + portfolioId,
+                "Transactions successfully retrieved.",
                 HttpStatus.OK,
                 "Failed to fetch transaction data for requesting user.",
                 HttpStatus.BAD_REQUEST
@@ -245,11 +251,10 @@ public class ServerService {
      * @return          List of (pending) orders associated with the user.
      */
     public ResponseEntity<String> getOrderHistory(String sessionId) {
-        String body = "";
-
-        return handleRequest(
-                db_url + "database/getOrders",
-                body,
+        String portfolioId = ONLINE_MAP.get(sessionId);
+        return handleGetRequest(
+                db_url + "database/getOrders/" + portfolioId,
+                "Orders successfully retrieved.",
                 HttpStatus.OK,
                 "Failed to fetch order data for requesting user.",
                 HttpStatus.BAD_REQUEST
@@ -264,10 +269,9 @@ public class ServerService {
      */
     public ResponseEntity<String> getHoldings(String sessionId) {
         String portfolioId = ONLINE_MAP.get(sessionId);
-
-        return handleRequest(
+        return handleGetRequest(
                 db_url + "database/holding/" + portfolioId,
-                null,
+                "Holdings successfully retrieved.",
                 HttpStatus.OK,
                 "Failed to fetch holdings for requesting user.",
                 HttpStatus.BAD_REQUEST
@@ -276,16 +280,47 @@ public class ServerService {
 
 
     /**
-     * Helper method to easily handle requests in a uniform fashion.
+     * Helper method to easily handle GET requests in a uniform fashion.
      *
      * @param url       location of API endpoint the data are re-routed to
-     * @param reqBody   body of client request
+     * @param succMsg   brief message explaining the successful request
      * @param succCode  HTTP code returned upon successful fulfillment of request
      * @param failMsg   brief message explaining the failed request
      * @param failCode  HTTP code returned upon unsuccessful fulfillment of request
      * @return          response containing brief details regarding request
      */
-    private ResponseEntity<String> handleRequest(String url, String reqBody, HttpStatus succCode, String failMsg, HttpStatus failCode) {
+    private ResponseEntity<String> handleGetRequest(String url, String succMsg, HttpStatus succCode, String failMsg, HttpStatus failCode) {
+
+        HttpRequest req = HttpRequest.newBuilder()
+                .uri(URI.create(url))
+                .header("Content-Type", "application/json")
+                .GET()
+                .build();
+
+        try {
+            HttpResponse<String> response = CLIENT.send(req, HttpResponse.BodyHandlers.ofString());
+            String logstring = succMsg + "\n" +
+                    "\n[" + response.statusCode() + "] " + response.body();
+            System.out.println(logstring);
+            return new ResponseEntity<>(logstring, succCode);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return new ResponseEntity<>(failMsg, failCode);
+        }
+    }
+
+    /**
+     * Helper method to easily handle POST requests in a uniform fashion.
+     *
+     * @param url       location of API endpoint the data are re-routed to
+     * @param reqBody   body of client request
+     * @param succMsg   brief message explaining the successful request
+     * @param succCode  HTTP code returned upon successful fulfillment of request
+     * @param failMsg   brief message explaining the failed request
+     * @param failCode  HTTP code returned upon unsuccessful fulfillment of request
+     * @return          response containing brief details regarding request
+     */
+    private ResponseEntity<String> handlePostRequest(String url, String reqBody, String succMsg, HttpStatus succCode, String failMsg, HttpStatus failCode) {
 
         HttpRequest req = HttpRequest.newBuilder()
                 .uri(URI.create(url))
@@ -295,7 +330,37 @@ public class ServerService {
 
         try {
             HttpResponse<String> response = CLIENT.send(req, HttpResponse.BodyHandlers.ofString());
-            String logstring = "Registered user\n" + reqBody +
+            String logstring = succMsg + "\n" + reqBody +
+                    "\n[" + response.statusCode() + "] " + response.body();
+            System.out.println(logstring);
+            return new ResponseEntity<>(logstring, succCode);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return new ResponseEntity<>(failMsg, failCode);
+        }
+    }
+
+    /**
+     * Helper method to easily handle POST requests in a uniform fashion.
+     *
+     * @param url       location of API endpoint the data are re-routed to
+     * @param succMsg   brief message explaining the successful request
+     * @param succCode  HTTP code returned upon successful fulfillment of request
+     * @param failMsg   brief message explaining the failed request
+     * @param failCode  HTTP code returned upon unsuccessful fulfillment of request
+     * @return          response containing brief details regarding request
+     */
+    private ResponseEntity<String> handleDeleteRequest(String url, String succMsg, HttpStatus succCode, String failMsg, HttpStatus failCode) {
+
+        HttpRequest req = HttpRequest.newBuilder()
+                .uri(URI.create(url))
+                .header("Content-Type", "application/json")
+                .DELETE()
+                .build();
+
+        try {
+            HttpResponse<String> response = CLIENT.send(req, HttpResponse.BodyHandlers.ofString());
+            String logstring = succMsg + "\n" +
                     "\n[" + response.statusCode() + "] " + response.body();
             System.out.println(logstring);
             return new ResponseEntity<>(logstring, succCode);
@@ -311,47 +376,5 @@ public class ServerService {
      */
     String timestamp() {
         return java.time.ZonedDateTime.now().toString();
-    }
-
-    /**
-     * Get the portfolioId associated with a given cookie.
-     * @param sessionId Session cookie of logged-in user.
-     * @return portfolioId
-     */
-    public String getCookieValue(String sessionId) {
-        return ONLINE_MAP.get(sessionId);
-    }
-
-    /**
-     * Make a cookie to associate a portfolioId with it if it is not already present.
-     *
-     * @param portfolioId unique identifier of a user's portfolio
-     * @return the new cookie assigned to hold this portfolioId.
-     */
-    public String makeCookie(String portfolioId) {
-        if (ONLINE_MAP.containsValue(portfolioId))
-                return null;
-        else {
-            String cookie = generateCookie();
-            ONLINE_MAP.put(cookie, portfolioId);
-            return cookie;
-        }
-    }
-
-    /**
-     * Remove a cookie. This should occur when the server is notified that the cookie expired.
-     * @param sessionId Session cookie of logged-in user.
-     */
-    public void removeCookie(String sessionId) {
-        ONLINE_MAP.remove(sessionId);
-    }
-
-    /**
-     * Generate a cookie
-     *
-     * @return Session cookie of logged-in user.
-     */
-    private String generateCookie() {
-        return String.valueOf(RANDOM.nextLong());
     }
 }
