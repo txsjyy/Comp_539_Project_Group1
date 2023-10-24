@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.*;
  * Requests are made here and routed through the server.
  */
 @RestController
+@CrossOrigin(origins = "*")
 @RequestMapping("api")
 public class ClientApiController {
 
