@@ -21,6 +21,10 @@ public class ClientApiController {
      */
     private final ServerService serverService;
 
+    /**
+     * Constructor for API Controller that passes requests to a server instance.
+     * @param serverService     Instance of server handling business logic of requests.
+     */
     @Autowired
     public ClientApiController(ServerService serverService) {
         this.serverService = serverService;
@@ -66,22 +70,42 @@ public class ClientApiController {
      *                 - (enum OrderType) side
      * @return If the order is successful, the response yields a brief message and a 201 CREATED status.
      */
-    @PostMapping("/order/marketOrder")
-    public ResponseEntity<String> marketOrder(@RequestBody marketOrderRequest request) {
+    @PostMapping("/order/placeMarketOrder")
+    public ResponseEntity<String> placeMarketOrder(@RequestBody marketOrderRequest request) {
         return serverService.placeMarketOrder(request);
     }
 
+    /**
+     * Cancel a given user's order provided their session cookie and order identifier.
+     *
+     * @param sessionId     Session cookie of logged-in user.
+     * @param orderId       Unique identifier of order
+     * @return              Upon success the response yields a brief message and a 200 OK status code. Upon failure a
+     *                      brief message describing the failure is returned.
+     */
     @DeleteMapping("/order/cancelOrder/{sessionId}&{orderId}")
     public ResponseEntity<String> cancelOrder(@PathVariable String sessionId, @PathVariable String orderId) {
         return serverService.cancelOrder(sessionId, orderId);
     }
 
-    @GetMapping("dashboard/getPFValue/{sessionId}")
+    /**
+     * Provide a valuation of a user's portfolio on their dashboard.
+     *
+     * @param sessionId     Session cookie of logged-in user.
+     * @return              Double value representing a portfolio's value.
+     */
+    @GetMapping("/dashboard/getPFValue/{sessionId}")
     public ResponseEntity<String> getPFValue(@PathVariable String sessionId) {
         return serverService.getPFValue(sessionId);
     }
 
-    @GetMapping("dashboard/getCash/{sessionId}")
+    /**
+     * Provide the total amount of cash on-hand in a user's account.
+     *
+     * @param sessionId     Session cookie of logged-in user.
+     * @return              Double value representing a user's cash.
+     */
+    @GetMapping("/dashboard/getCash/{sessionId}")
     public ResponseEntity<String> getCash(@PathVariable String sessionId) {
         return serverService.getCash(sessionId);
     }
@@ -92,8 +116,8 @@ public class ClientApiController {
      * @param symbol The symbol of the relevant asset (e.g., stock ticker GOOG)
      * @return an object holding the data of the stock. It is serialized into JSON upon receipt.
      */
-    @GetMapping("/dashboard/getStock")
-    public ResponseEntity<String> getStock(@RequestBody String symbol) {
+    @GetMapping("/dashboard/getStock/{symbol}")
+    public ResponseEntity<String> getStock(@PathVariable String symbol) {
         return serverService.getStock(symbol);
     }
 
@@ -109,16 +133,23 @@ public class ClientApiController {
     }
 
     /**
-     * Query for all of a user's open orders (pending orders)
+     * Query for all of a user's open orders (pending orders).
      *
+     * @param sessionId     Session cookie of logged-in user.
      * @return a list of order objects are returned. They are serialized into JSON upon receipt.
      */
-    @GetMapping("dashboard/getOrderHistory/{sessionId}")
+    @GetMapping("/dashboard/getOrderHistory/{sessionId}")
     public ResponseEntity<String> getOrderHistory(@PathVariable String sessionId) {
         return serverService.getOrderHistory(sessionId);
     }
 
-    @GetMapping("dashboard/getHoldings/{sessionId}")
+    /**
+     * Query for all of a user's holdings.
+     *
+     * @param sessionId     Session cookie of logged-in user.
+     * @return              A user's full list of holdings.
+     */
+    @GetMapping("/dashboard/getHoldings/{sessionId}")
     public ResponseEntity<String> getHoldings(@PathVariable String sessionId) {
         return serverService.getHoldings(sessionId);
     }
