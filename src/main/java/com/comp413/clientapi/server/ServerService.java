@@ -33,7 +33,7 @@ public class ServerService {
     /**
      * Map of SessionId (cookie) to portfolioId (unique users). Maintains data on logged-in users.
      */
-    final Map<String, String> ONLINE_MAP = new HashMap<>();
+    final Map<String, Long> sessionPortfolioMap = new HashMap<>();
     /**
      * Random state for generating cookies.
      */
@@ -64,7 +64,7 @@ public class ServerService {
 
         java.time.ZonedDateTime time = java.time.ZonedDateTime.now();
         String timestamp = time.toString();
-        String portfolioId = String.valueOf(RANDOM.nextLong());
+        Long portfolioId = RANDOM.nextLong();
         // Append necessary items to response body
         String body = request.toString();
         body = body.substring(0, body.length()-1);
@@ -86,7 +86,7 @@ public class ServerService {
             HttpResponse<String> response = CLIENT.send(req, HttpResponse.BodyHandlers.ofString());
 
             String cookieValue = portfolioId + "-" + RANDOM.nextLong() + "-" + time.format(DateTimeFormatter.ISO_ZONED_DATE_TIME);
-            ONLINE_MAP.put(cookieValue, portfolioId);
+            sessionPortfolioMap.put(cookieValue, portfolioId);
             HttpHeaders headers = new HttpHeaders();
             headers.add("Set-Cookie", "STSESSIONID=" + cookieValue + "; Max-Age=3600");
 
@@ -155,7 +155,7 @@ public class ServerService {
     public ResponseEntity<String> cancelOrder(String sessionId, String orderId) {
         // use sessionId to ping DB if that user has order? or just pass to finsim
 
-        String portfolioId = ONLINE_MAP.get(sessionId);
+        Long portfolioId = sessionPortfolioMap.get(sessionId);
         return handleDeleteRequest(
                 fin_sim_url + "/api/v0/cancel-order/" + orderId,
                 "Order successfully cancelled.",
@@ -171,7 +171,8 @@ public class ServerService {
      * @param request   All the necessary information needed to process a market order.
      * @return          Upon success, a brief message with a 201 CREATED code is returned.
      */
-    public ResponseEntity<String> placeMarketOrder(marketOrderRequest request) {
+    public ResponseEntity<String> placeMarketOrder(String sessionId, marketOrderRequest request) {
+        Long portfolioId = sessionPortfolioMap.get(sessionId);
         return handlePostRequest(
                 fin_sim_url + "api/v0/place-market-order/",
                 request.toString(),
@@ -209,13 +210,6 @@ public class ServerService {
      * @return          If asset exists, the response contained data pertinent to the symbol.
      */
     public ResponseEntity<String> getStock(String symbol) {
-//        return handleGetRequest(
-//                db_url + "database/getStock/" + symbol,
-//                "Stock data successfully retrieved.",
-//                HttpStatus.OK,
-//                "Failed to fetch stock data for requested asset: " + symbol,
-//                HttpStatus.BAD_REQUEST
-//        );
         // pass params for requested data
         return handleGetRequest(
                 fin_sim_url + "api/v0/get-asset-price/" + symbol,
@@ -227,6 +221,14 @@ public class ServerService {
 //        return new ResponseEntity<>(HttpStatus.NOT_IMPLEMENTED);
     }
 
+    // get stock history
+    // get stock market price
+
+    // gets for any lists should default to 50 results
+    // bigtable: limit=50, offset = 100
+
+    // user id
+
     /**
      * Get transaction data for a logged-in user from the database. CURRENTLY just fetches (pending) orders.
      *
@@ -234,7 +236,7 @@ public class ServerService {
      * @return          List of (completed) transactions associated with the user.
      */
     public ResponseEntity<String> getTransactionHistory(String sessionId) {
-        String portfolioId = ONLINE_MAP.get(sessionId);
+        Long portfolioId = sessionPortfolioMap.get(sessionId);
         return handleGetRequest(
                 db_url + "database/getOrders/" + portfolioId,
                 "Transactions successfully retrieved.",
@@ -251,7 +253,7 @@ public class ServerService {
      * @return          List of (pending) orders associated with the user.
      */
     public ResponseEntity<String> getOrderHistory(String sessionId) {
-        String portfolioId = ONLINE_MAP.get(sessionId);
+        Long portfolioId = sessionPortfolioMap.get(sessionId);
         return handleGetRequest(
                 db_url + "database/getOrders/" + portfolioId,
                 "Orders successfully retrieved.",
@@ -268,7 +270,7 @@ public class ServerService {
      * @return  list of held assets.
      */
     public ResponseEntity<String> getHoldings(String sessionId) {
-        String portfolioId = ONLINE_MAP.get(sessionId);
+        Long portfolioId = sessionPortfolioMap.get(sessionId);
         return handleGetRequest(
                 db_url + "database/holding/" + portfolioId,
                 "Holdings successfully retrieved.",

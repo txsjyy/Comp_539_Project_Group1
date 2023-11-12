@@ -63,16 +63,16 @@ public class ClientApiController {
      *
      * @param request Order request contains all the details necessary for an order. A user must specify the following
      *                for a valid order request:
-     *                 - (int) userId
-     *                 - (int) portfolioId
+     *                 - (long) userId
+     *                 - (long) portfolioId
      *                 - (String) ticker
      *                 - (int) quantity
      *                 - (enum OrderType) side
      * @return If the order is successful, the response yields a brief message and a 201 CREATED status.
      */
-    @PostMapping("/order/placeMarketOrder")
-    public ResponseEntity<String> placeMarketOrder(@RequestBody marketOrderRequest request) {
-        return serverService.placeMarketOrder(request);
+    @PostMapping("/order/placeMarketOrder/{sessionId}")
+    public ResponseEntity<String> placeMarketOrder(@PathVariable String sessionId, @RequestBody marketOrderRequest request) {
+        return serverService.placeMarketOrder(sessionId, request);
     }
 
     /**

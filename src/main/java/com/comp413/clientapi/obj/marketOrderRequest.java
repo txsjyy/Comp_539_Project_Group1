@@ -10,8 +10,8 @@ package com.comp413.clientapi.obj;
  * @param side          either "BUY" or "SELL" for buy orders or sell orders, respectively.
  */
 public record marketOrderRequest (
-        int userId,
-        int portfolioId,
+        long userId,
+        long portfolioId,
         String ticker,
         int quantity,
         OrderType side
