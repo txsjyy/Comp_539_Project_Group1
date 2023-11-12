@@ -3,10 +3,14 @@ package com.comp413.clientapi.api;
 import com.comp413.clientapi.obj.credentialsRequest;
 import com.comp413.clientapi.obj.marketOrderRequest;
 
+import com.comp413.clientapi.obj.timeRange;
 import com.comp413.clientapi.server.ServerService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.sql.Time;
+import java.util.Timer;
 
 /**
  * Requests are made here and routed through the server.
@@ -122,6 +126,17 @@ public class ClientApiController {
     }
 
     /**
+     * Fetch data regarding an entity with the provided symbol.
+     *
+     * @param symbol The symbol of the relevant asset (e.g., stock ticker GOOG)
+     * @return an object holding the data of the stock. It is serialized into JSON upon receipt.
+     */
+    @GetMapping("/dashboard/getStockHistory/{symbol}&{range}}")
+    public ResponseEntity<String> getStockHistory(@PathVariable String symbol, @PathVariable timeRange range) {
+        return serverService.fetchHistoricalData(symbol, range);
+    }
+
+    /**
      * Query for all of a user's completed transactions (filled orders).
      *
      * @param sessionId cookie
@@ -138,9 +153,20 @@ public class ClientApiController {
      * @param sessionId     Session cookie of logged-in user.
      * @return a list of order objects are returned. They are serialized into JSON upon receipt.
      */
-    @GetMapping("/dashboard/getOrderHistory/{sessionId}")
-    public ResponseEntity<String> getOrderHistory(@PathVariable String sessionId) {
-        return serverService.getOrderHistory(sessionId);
+    @GetMapping("/dashboard/getPendingOrders/{sessionId}")
+    public ResponseEntity<String> getPendingOrder(@PathVariable String sessionId) {
+        return serverService.getPendingOrders(sessionId);
+    }
+
+    /**
+     * Query for all of a user's cancelled orders.
+     *
+     * @param sessionId     Session cookie of logged-in user.
+     * @return a list of order objects are returned. They are serialized into JSON upon receipt.
+     */
+    @GetMapping("/dashboard/getCancelledOrders/{sessionId}")
+    public ResponseEntity<String> getCancelledOrder(@PathVariable String sessionId) {
+        return serverService.getCancelledOrders(sessionId);
     }
 
     /**

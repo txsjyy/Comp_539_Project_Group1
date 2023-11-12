@@ -4,23 +4,22 @@ package com.comp413.clientapi.obj;
  * Request object for any request to place a market order. All fields final.
  *
  * @param userId        unique identifier of requesting user
- * @param portfolioId   unique identifier of requesting user's portfolio
  * @param ticker        symbol associated with requested asset
  * @param quantity      amount of asset requested
  * @param side          either "BUY" or "SELL" for buy orders or sell orders, respectively.
  */
 public record marketOrderRequest (
-        long userId,
-        long portfolioId,
+        int userId,
         String ticker,
         int quantity,
-        OrderType side
+        Side side,
+        OrderType type
 ) {
     /**
-     * Specifies the type of order placed: BUY or SELL. When passed in a JSON request, the equivalnet string must be
+     * Specifies the type of order placed: BUY or SELL. When passed in a JSON request, the equivalent string must be
      * placed within double quotes.
      */
-    public enum OrderType {
+    public enum Side {
         /**
          * For Buy orders
          */
@@ -31,14 +30,20 @@ public record marketOrderRequest (
         SELL
     }
 
+    public enum OrderType {
+        STOP,
+        LIMIT,
+        MARKET
+    }
+
     @Override
     public String toString() {
         return "{" +
                 "\"userId\": " + userId +
-                ", \"portfolioId\": " + portfolioId +
                 ", \"ticker\": \"" + ticker + "\"" +
                 ", \"quantity\": " + quantity +
                 ", \"side\": \"" + side + "\"" +
+                ", \"orderType\": \"" + type + "\"" +
                 "}";
     }
 }
