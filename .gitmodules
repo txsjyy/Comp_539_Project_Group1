@@ -1,0 +1,3 @@
+[submodule "src/main/java/com/comp413/clientapi/dbapi"]
+	path = src/main/java/com/comp413/clientapi/dbapi
+	url = https://github.com/COMP413F23/database-API
