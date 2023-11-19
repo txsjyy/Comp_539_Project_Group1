@@ -2,6 +2,7 @@ package com.comp413.clientapi.server;
 
 import com.comp413.clientapi.obj.credentialsRequest;
 import com.comp413.clientapi.obj.marketOrderRequest;
+import com.comp413.clientapi.obj.timeRange;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -33,7 +34,7 @@ public class ServerService {
     /**
      * Map of SessionId (cookie) to portfolioId (unique users). Maintains data on logged-in users.
      */
-    final Map<String, Long> sessionPortfolioMap = new HashMap<>();
+    final Map<String, String> ONLINE_MAP = new HashMap<>();
     /**
      * Random state for generating cookies.
      */
@@ -64,7 +65,7 @@ public class ServerService {
 
         java.time.ZonedDateTime time = java.time.ZonedDateTime.now();
         String timestamp = time.toString();
-        Long portfolioId = RANDOM.nextLong();
+        String portfolioId = String.valueOf(RANDOM.nextLong());
         // Append necessary items to response body
         String body = request.toString();
         body = body.substring(0, body.length()-1);
@@ -86,7 +87,7 @@ public class ServerService {
             HttpResponse<String> response = CLIENT.send(req, HttpResponse.BodyHandlers.ofString());
 
             String cookieValue = portfolioId + "-" + RANDOM.nextLong() + "-" + time.format(DateTimeFormatter.ISO_ZONED_DATE_TIME);
-            sessionPortfolioMap.put(cookieValue, portfolioId);
+            ONLINE_MAP.put(cookieValue, portfolioId);
             HttpHeaders headers = new HttpHeaders();
             headers.add("Set-Cookie", "STSESSIONID=" + cookieValue + "; Max-Age=3600");
 
@@ -155,7 +156,7 @@ public class ServerService {
     public ResponseEntity<String> cancelOrder(String sessionId, String orderId) {
         // use sessionId to ping DB if that user has order? or just pass to finsim
 
-        Long portfolioId = sessionPortfolioMap.get(sessionId);
+        String portfolioId = ONLINE_MAP.get(sessionId);
         return handleDeleteRequest(
                 fin_sim_url + "/api/v0/cancel-order/" + orderId,
                 "Order successfully cancelled.",
@@ -172,7 +173,6 @@ public class ServerService {
      * @return          Upon success, a brief message with a 201 CREATED code is returned.
      */
     public ResponseEntity<String> placeMarketOrder(String sessionId, marketOrderRequest request) {
-        Long portfolioId = sessionPortfolioMap.get(sessionId);
         return handlePostRequest(
                 fin_sim_url + "api/v0/place-market-order/",
                 request.toString(),
@@ -210,6 +210,13 @@ public class ServerService {
      * @return          If asset exists, the response contained data pertinent to the symbol.
      */
     public ResponseEntity<String> getStock(String symbol) {
+//        return handleGetRequest(
+//                db_url + "database/getStock/" + symbol,
+//                "Stock data successfully retrieved.",
+//                HttpStatus.OK,
+//                "Failed to fetch stock data for requested asset: " + symbol,
+//                HttpStatus.BAD_REQUEST
+//        );
         // pass params for requested data
         return handleGetRequest(
                 fin_sim_url + "api/v0/get-asset-price/" + symbol,
@@ -221,13 +228,67 @@ public class ServerService {
 //        return new ResponseEntity<>(HttpStatus.NOT_IMPLEMENTED);
     }
 
-    // get stock history
-    // get stock market price
+    /**
+     * Request historical data for an individual stock
+     *
+     * @param symbol    ticker for the stock for which data is requested
+     * @return          If asset exists, the response contains historical data related to it
+     */
+    public ResponseEntity<String> fetchHistoricalData(String symbol, timeRange range) {
+        return handleGetRequest(
+                //TODO: need correct URL for getting historical data
+                fin_sim_url + "api/historicalData/" + symbol,
+                "Stock data successfully retrieved.",
+                HttpStatus.OK,
+                "Failed to fetch stock data for requested asset: " + symbol,
+                HttpStatus.BAD_REQUEST
+        );
+    }
 
-    // gets for any lists should default to 50 results
-    // bigtable: limit=50, offset = 100
+    /**
+     * Validates that an order is possible to fulfill
+     * @param marketOrderRequest    the order that is intended
+     * @return                      true if the order can be fulfilled, false if not
+     */
+    public boolean validateOrder(marketOrderRequest marketOrderRequest) {
+        // Check if ticker is valid
+        if (!isValidTicker(marketOrderRequest.ticker())) {
+            System.out.println("Invalid ticker");
+            return false;
+        }
 
-    // user id
+        // Check if user has enough funds (you'll likely need another service for this)
+        if (!hasSufficientFunds(marketOrderRequest.userId(), marketOrderRequest.quantity())) {
+            System.out.println("Insufficient funds");
+            return false;
+        }
+
+        // Other validation checks go here...
+
+        return true;
+    }
+
+    /**
+     * Checks if the ticker is valid
+     * @param ticker    the ticker to check
+     * @return          true if the ticker is valid, false if not
+     */
+    private boolean isValidTicker(String ticker) {
+        // will check against ticker list in DB to ensure it is a valid ticket
+        //TODO: add database check
+        return ticker != null && !ticker.trim().isEmpty();
+    }
+
+    /**
+     * Checks if the user has sufficient funds for an order
+     * @param userId        the ID of the user
+     * @param quantity      the quantity of stock desired
+     * @return              true if the user has sufficient funds, false if not
+     */
+    private boolean hasSufficientFunds(int userId, int quantity) {
+        //TODO: implement this
+        return quantity <= 100;
+    }
 
     /**
      * Get transaction data for a logged-in user from the database. CURRENTLY just fetches (pending) orders.
@@ -236,7 +297,7 @@ public class ServerService {
      * @return          List of (completed) transactions associated with the user.
      */
     public ResponseEntity<String> getTransactionHistory(String sessionId) {
-        Long portfolioId = sessionPortfolioMap.get(sessionId);
+        String portfolioId = ONLINE_MAP.get(sessionId);
         return handleGetRequest(
                 db_url + "database/getOrders/" + portfolioId,
                 "Transactions successfully retrieved.",
@@ -252,8 +313,25 @@ public class ServerService {
      * @param sessionId Session cookie of logged-in user.
      * @return          List of (pending) orders associated with the user.
      */
-    public ResponseEntity<String> getOrderHistory(String sessionId) {
-        Long portfolioId = sessionPortfolioMap.get(sessionId);
+    public ResponseEntity<String> getPendingOrders(String sessionId) {
+        String portfolioId = ONLINE_MAP.get(sessionId);
+        return handleGetRequest(
+                db_url + "database/getOrders/" + portfolioId,
+                "Orders successfully retrieved.",
+                HttpStatus.OK,
+                "Failed to fetch order data for requesting user.",
+                HttpStatus.BAD_REQUEST
+        );
+    }
+
+    /**
+     * Get cancelled order data for a logged-in user from the database.
+     *
+     * @param sessionId Session cookie of logged-in user.
+     * @return          List of cancelled orders associated with the user.
+     */
+    public ResponseEntity<String> getCancelledOrders(String sessionId) {
+        String portfolioId = ONLINE_MAP.get(sessionId);
         return handleGetRequest(
                 db_url + "database/getOrders/" + portfolioId,
                 "Orders successfully retrieved.",
@@ -270,7 +348,7 @@ public class ServerService {
      * @return  list of held assets.
      */
     public ResponseEntity<String> getHoldings(String sessionId) {
-        Long portfolioId = sessionPortfolioMap.get(sessionId);
+        String portfolioId = ONLINE_MAP.get(sessionId);
         return handleGetRequest(
                 db_url + "database/holding/" + portfolioId,
                 "Holdings successfully retrieved.",
