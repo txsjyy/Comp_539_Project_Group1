@@ -1,5 +1,6 @@
 package com.comp413.clientapi.api;
 
+import com.comp413.clientapi.dbapi.holding.Holding;
 import com.comp413.clientapi.obj.credentialsRequest;
 import com.comp413.clientapi.obj.marketOrderRequest;
 
@@ -10,6 +11,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.sql.Time;
+import java.util.List;
 import java.util.Timer;
 
 /**
@@ -176,7 +178,7 @@ public class ClientApiController {
      * @return              A user's full list of holdings.
      */
     @GetMapping("/dashboard/getHoldings/{sessionId}")
-    public ResponseEntity<String> getHoldings(@PathVariable String sessionId) {
+    public ResponseEntity<List<Holding>> getHoldings(@PathVariable String sessionId) {
         return serverService.getHoldings(sessionId);
     }
 }

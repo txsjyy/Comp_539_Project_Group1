@@ -1,13 +1,12 @@
 package com.comp413.clientapi.server;
 
 import com.comp413.clientapi.dbapi.BigTableManager;
+import com.comp413.clientapi.dbapi.holding.Holding;
 import com.comp413.clientapi.dbapi.user.User;
 import com.comp413.clientapi.obj.credentialsRequest;
 import com.comp413.clientapi.obj.marketOrderRequest;
 import com.comp413.clientapi.obj.timeRange;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
@@ -17,6 +16,7 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Random;
 
@@ -31,11 +31,8 @@ public class ServerService {
     /**
      * URL to where the server routes FinSim requests
      */
-    final String fin_sim_url = "https://comp-413-finsim-dot-rice-comp-539-spring-2022.uk.r.appspot.com/";
-    /**
-     * URL to where the server routes Database requests
-     */
-    final String db_url = "https://comp-413-db-dot-rice-comp-539-spring-2022.uk.r.appspot.com/api/";
+    final String fin_sim_url = "https://comp-413-finsim-dot-rice-comp-539-spring-2022.uk.r.appspot.com/api/";
+
     /**
      * Map of SessionId (cookie) to portfolioId (unique users). Maintains data on logged-in users.
      */
@@ -71,18 +68,27 @@ public class ServerService {
      */
     public ResponseEntity<String> login(credentialsRequest request) {
 
+        String username = request.username();
 
-        if (!DB.validateUser(request.username(), request.password()))
+        if (!DB.validateUser(username, request.password()))
             return new ResponseEntity<>("Failed to log user in - credentials did not match.", HttpStatus.BAD_REQUEST);
 
-        String cookie = String.valueOf(RANDOM.nextLong());
+        // Construct cookie value
+        Long pfID = 1L;  // temp until DB gives us pfID for user after validating.
+        Long random_val = RANDOM.nextLong();
+        String time_stamp = timestamp();
+        String cookie_val = String.valueOf(pfID) + "-" + String.valueOf(random_val) + "-" + time_stamp;
 
-//        java.time.ZonedDateTime time = java.time.ZonedDateTime.now();
-//        String timestamp = time.toString();
-//        String portfolioId = String.valueOf(RANDOM.nextLong());
+        // TODO: determine if it is more useful to track pfID or username with cookie
+        ONLINE_MAP.put(cookie_val, String.valueOf(pfID));
+
+        // Cookie lasts for 1hr
+        HttpCookie cookie = ResponseCookie.from("STSESSIONID", cookie_val)
+                .maxAge(3600)
+                .build();
 
         return ResponseEntity.ok()
-                .header(HttpHeaders.SET_COOKIE, cookie)
+                .header(HttpHeaders.SET_COOKIE, cookie.toString())
                 .body("Successful user login.");
     }
 
@@ -98,16 +104,18 @@ public class ServerService {
      */
     public ResponseEntity<String> register(credentialsRequest request) {
 
+        String username = request.username();
+
         // need to check if user exists before writing new user
 
         User user = new User(
-                request.username(),
+                username,
                 request.email(),
                 request.password(),
                 null, null, null, null);
         DB.writeNewUser(user);
 
-        return new ResponseEntity<>("User \"" + request.username() + "\" successfully registered.", HttpStatus.CREATED);
+        return new ResponseEntity<>("User \"" + username + "\" successfully registered.", HttpStatus.CREATED);
     }
 
     /**
@@ -122,7 +130,7 @@ public class ServerService {
 
         String portfolioId = ONLINE_MAP.get(sessionId);
         return handleDeleteRequest(
-                fin_sim_url + "/api/v0/cancel-order/" + orderId,
+                "cancel-order/" + orderId,
                 "Order successfully cancelled.",
                 HttpStatus.OK,
                 "Failed to cancel the requested order " + orderId,
@@ -138,7 +146,7 @@ public class ServerService {
      */
     public ResponseEntity<String> placeMarketOrder(String sessionId, marketOrderRequest request) {
         return handlePostRequest(
-                fin_sim_url + "api/v0/place-market-order/",
+                "place-market-order/",
                 request.toString(),
                 "Market order successfully placed.",
                 HttpStatus.CREATED,
@@ -183,7 +191,7 @@ public class ServerService {
 //        );
         // pass params for requested data
         return handleGetRequest(
-                fin_sim_url + "api/v0/get-asset-price/" + symbol,
+                "get-asset-price/" + symbol,
                 "Stock data successfully retrieved.",
                 HttpStatus.OK,
                 "Failed to fetch stock data for requested asset: " + symbol,
@@ -201,7 +209,7 @@ public class ServerService {
     public ResponseEntity<String> fetchHistoricalData(String symbol, timeRange range) {
         return handleGetRequest(
                 //TODO: need correct URL for getting historical data
-                fin_sim_url + "api/historicalData/" + symbol,
+                "historicalData/" + symbol,
                 "Stock data successfully retrieved.",
                 HttpStatus.OK,
                 "Failed to fetch stock data for requested asset: " + symbol,
@@ -262,13 +270,8 @@ public class ServerService {
      */
     public ResponseEntity<String> getTransactionHistory(String sessionId) {
         String portfolioId = ONLINE_MAP.get(sessionId);
-        return handleGetRequest(
-                db_url + "database/getOrders/" + portfolioId,
-                "Transactions successfully retrieved.",
-                HttpStatus.OK,
-                "Failed to fetch transaction data for requesting user.",
-                HttpStatus.BAD_REQUEST
-        );
+        return new ResponseEntity<>(HttpStatus.OK);
+
     }
 
     /**
@@ -279,13 +282,8 @@ public class ServerService {
      */
     public ResponseEntity<String> getPendingOrders(String sessionId) {
         String portfolioId = ONLINE_MAP.get(sessionId);
-        return handleGetRequest(
-                db_url + "database/getOrders/" + portfolioId,
-                "Orders successfully retrieved.",
-                HttpStatus.OK,
-                "Failed to fetch order data for requesting user.",
-                HttpStatus.BAD_REQUEST
-        );
+        return new ResponseEntity<>(HttpStatus.OK);
+
     }
 
     /**
@@ -296,13 +294,8 @@ public class ServerService {
      */
     public ResponseEntity<String> getCancelledOrders(String sessionId) {
         String portfolioId = ONLINE_MAP.get(sessionId);
-        return handleGetRequest(
-                db_url + "database/getOrders/" + portfolioId,
-                "Orders successfully retrieved.",
-                HttpStatus.OK,
-                "Failed to fetch order data for requesting user.",
-                HttpStatus.BAD_REQUEST
-        );
+        return new ResponseEntity<>(HttpStatus.OK);
+
     }
 
     /**
@@ -311,29 +304,27 @@ public class ServerService {
      * @param sessionId Session cookie of logged-in user.
      * @return  list of held assets.
      */
-    public ResponseEntity<String> getHoldings(String sessionId) {
+    public ResponseEntity<List<Holding>> getHoldings(String sessionId) {
         String portfolioId = ONLINE_MAP.get(sessionId);
-        return handleGetRequest(
-                db_url + "database/holding/" + portfolioId,
-                "Holdings successfully retrieved.",
-                HttpStatus.OK,
-                "Failed to fetch holdings for requesting user.",
-                HttpStatus.BAD_REQUEST
-        );
+
+        List<Holding> holdings = DB.getHoldings(portfolioId);
+        return new ResponseEntity<>(holdings, HttpStatus.OK);
     }
 
 
     /**
      * Helper method to easily handle GET requests in a uniform fashion.
      *
-     * @param url       location of API endpoint the data are re-routed to
+     * @param suffix    location of API endpoint relative to fin_sim API URL to where the data are re-routed
      * @param succMsg   brief message explaining the successful request
      * @param succCode  HTTP code returned upon successful fulfillment of request
      * @param failMsg   brief message explaining the failed request
      * @param failCode  HTTP code returned upon unsuccessful fulfillment of request
      * @return          response containing brief details regarding request
      */
-    private ResponseEntity<String> handleGetRequest(String url, String succMsg, HttpStatus succCode, String failMsg, HttpStatus failCode) {
+    private ResponseEntity<String> handleGetRequest(String suffix, String succMsg, HttpStatus succCode, String failMsg, HttpStatus failCode) {
+
+        String url = fin_sim_url + suffix;
 
         HttpRequest req = HttpRequest.newBuilder()
                 .uri(URI.create(url))
@@ -356,7 +347,7 @@ public class ServerService {
     /**
      * Helper method to easily handle POST requests in a uniform fashion.
      *
-     * @param url       location of API endpoint the data are re-routed to
+     * @param suffix    location of API endpoint relative to fin_sim API URL to where the data are re-routed
      * @param reqBody   body of client request
      * @param succMsg   brief message explaining the successful request
      * @param succCode  HTTP code returned upon successful fulfillment of request
@@ -364,7 +355,9 @@ public class ServerService {
      * @param failCode  HTTP code returned upon unsuccessful fulfillment of request
      * @return          response containing brief details regarding request
      */
-    private ResponseEntity<String> handlePostRequest(String url, String reqBody, String succMsg, HttpStatus succCode, String failMsg, HttpStatus failCode) {
+    private ResponseEntity<String> handlePostRequest(String suffix, String reqBody, String succMsg, HttpStatus succCode, String failMsg, HttpStatus failCode) {
+
+        String url = fin_sim_url + suffix;
 
         HttpRequest req = HttpRequest.newBuilder()
                 .uri(URI.create(url))
@@ -387,14 +380,16 @@ public class ServerService {
     /**
      * Helper method to easily handle POST requests in a uniform fashion.
      *
-     * @param url       location of API endpoint the data are re-routed to
+     * @param suffix    location of API endpoint relative to fin_sim API URL to where the data are re-routed
      * @param succMsg   brief message explaining the successful request
      * @param succCode  HTTP code returned upon successful fulfillment of request
      * @param failMsg   brief message explaining the failed request
      * @param failCode  HTTP code returned upon unsuccessful fulfillment of request
      * @return          response containing brief details regarding request
      */
-    private ResponseEntity<String> handleDeleteRequest(String url, String succMsg, HttpStatus succCode, String failMsg, HttpStatus failCode) {
+    private ResponseEntity<String> handleDeleteRequest(String suffix, String succMsg, HttpStatus succCode, String failMsg, HttpStatus failCode) {
+
+        String url = fin_sim_url + suffix;
 
         HttpRequest req = HttpRequest.newBuilder()
                 .uri(URI.create(url))
