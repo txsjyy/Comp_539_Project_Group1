@@ -2,7 +2,7 @@ package com.comp413.clientapi.api;
 
 import com.comp413.clientapi.dbapi.holding.Holding;
 import com.comp413.clientapi.obj.credentialsRequest;
-import com.comp413.clientapi.obj.marketOrderRequest;
+import com.comp413.clientapi.obj.orderRequest;
 
 import com.comp413.clientapi.obj.timeRange;
 import com.comp413.clientapi.server.ServerService;
@@ -10,9 +10,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.sql.Time;
 import java.util.List;
-import java.util.Timer;
 
 /**
  * Requests are made here and routed through the server.
@@ -26,6 +24,8 @@ public class ClientApiController {
      * Service that performs the business logic of request handling - "The Server".
      */
     private final ServerService serverService;
+
+    public final static String login_cookie_name = "STSESSIONID";
 
     /**
      * Constructor for API Controller that passes requests to a server instance.
@@ -69,16 +69,18 @@ public class ClientApiController {
      *
      * @param request Order request contains all the details necessary for an order. A user must specify the following
      *                for a valid order request:
-     *                 - (long) userId
+     *                 - (enum OrderType) side
      *                 - (long) portfolioId
      *                 - (String) ticker
      *                 - (int) quantity
-     *                 - (enum OrderType) side
+     *                 - (Side) side
+     *                 - (float) price
+     *
      * @return If the order is successful, the response yields a brief message and a 201 CREATED status.
      */
-    @PostMapping("/order/placeMarketOrder/{sessionId}")
-    public ResponseEntity<String> placeMarketOrder(@PathVariable String sessionId, @RequestBody marketOrderRequest request) {
-        return serverService.placeMarketOrder(sessionId, request);
+    @PostMapping("/order/placeOrder/")
+    public ResponseEntity<String> placeOrder(@CookieValue(value=login_cookie_name) String sessionId, @RequestBody orderRequest request) {
+        return serverService.placeOrder(sessionId, request);
     }
 
     /**
@@ -89,8 +91,8 @@ public class ClientApiController {
      * @return              Upon success the response yields a brief message and a 200 OK status code. Upon failure a
      *                      brief message describing the failure is returned.
      */
-    @DeleteMapping("/order/cancelOrder/{sessionId}&{orderId}")
-    public ResponseEntity<String> cancelOrder(@PathVariable String sessionId, @PathVariable String orderId) {
+    @DeleteMapping("/order/cancelOrder/{orderId}")
+    public ResponseEntity<String> cancelOrder(@CookieValue(value=login_cookie_name) String sessionId, @PathVariable String orderId) {
         return serverService.cancelOrder(sessionId, orderId);
     }
 
@@ -100,8 +102,8 @@ public class ClientApiController {
      * @param sessionId     Session cookie of logged-in user.
      * @return              Double value representing a portfolio's value.
      */
-    @GetMapping("/dashboard/getPFValue/{sessionId}")
-    public ResponseEntity<String> getPFValue(@PathVariable String sessionId) {
+    @GetMapping("/dashboard/getPFValue/")
+    public ResponseEntity<String> getPFValue(@CookieValue(value=login_cookie_name) String sessionId) {
         return serverService.getPFValue(sessionId);
     }
 
@@ -111,8 +113,8 @@ public class ClientApiController {
      * @param sessionId     Session cookie of logged-in user.
      * @return              Double value representing a user's cash.
      */
-    @GetMapping("/dashboard/getCash/{sessionId}")
-    public ResponseEntity<String> getCash(@PathVariable String sessionId) {
+    @GetMapping("/dashboard/getCash/")
+    public ResponseEntity<String> getCash(@CookieValue(value=login_cookie_name) String sessionId) {
         return serverService.getCash(sessionId);
     }
 
@@ -133,7 +135,7 @@ public class ClientApiController {
      * @param symbol The symbol of the relevant asset (e.g., stock ticker GOOG)
      * @return an object holding the data of the stock. It is serialized into JSON upon receipt.
      */
-    @GetMapping("/dashboard/getStockHistory/{symbol}&{range}}")
+    @GetMapping("/dashboard/getStockHistory/{symbol}&{range}")
     public ResponseEntity<String> getStockHistory(@PathVariable String symbol, @PathVariable timeRange range) {
         return serverService.fetchHistoricalData(symbol, range);
     }
@@ -144,8 +146,8 @@ public class ClientApiController {
      * @param sessionId cookie
      * @return A list of transaction objects are returned. They are serialized into JSON upon receipt.
      */
-    @GetMapping("/dashboard/getTransactionHistory/{sessionId}")
-    public ResponseEntity<String> getTransactionHistory(@PathVariable String sessionId) {
+    @GetMapping("/dashboard/getTransactionHistory/")
+    public ResponseEntity<String> getTransactionHistory(@CookieValue(value=login_cookie_name) String sessionId) {
         return serverService.getTransactionHistory(sessionId);
     }
 
@@ -155,8 +157,8 @@ public class ClientApiController {
      * @param sessionId     Session cookie of logged-in user.
      * @return a list of order objects are returned. They are serialized into JSON upon receipt.
      */
-    @GetMapping("/dashboard/getPendingOrders/{sessionId}")
-    public ResponseEntity<String> getPendingOrder(@PathVariable String sessionId) {
+    @GetMapping("/dashboard/getPendingOrders/")
+    public ResponseEntity<String> getPendingOrder(@CookieValue(value=login_cookie_name) String sessionId) {
         return serverService.getPendingOrders(sessionId);
     }
 
@@ -166,8 +168,8 @@ public class ClientApiController {
      * @param sessionId     Session cookie of logged-in user.
      * @return a list of order objects are returned. They are serialized into JSON upon receipt.
      */
-    @GetMapping("/dashboard/getCancelledOrders/{sessionId}")
-    public ResponseEntity<String> getCancelledOrder(@PathVariable String sessionId) {
+    @GetMapping("/dashboard/getCancelledOrders/")
+    public ResponseEntity<String> getCancelledOrder(@CookieValue(value=login_cookie_name) String sessionId) {
         return serverService.getCancelledOrders(sessionId);
     }
 
@@ -177,8 +179,8 @@ public class ClientApiController {
      * @param sessionId     Session cookie of logged-in user.
      * @return              A user's full list of holdings.
      */
-    @GetMapping("/dashboard/getHoldings/{sessionId}")
-    public ResponseEntity<List<Holding>> getHoldings(@PathVariable String sessionId) {
+    @GetMapping("/dashboard/getHoldings/")
+    public ResponseEntity<List<Holding>> getHoldings(@CookieValue(value=login_cookie_name) String sessionId) {
         return serverService.getHoldings(sessionId);
     }
 }

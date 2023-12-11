@@ -14,61 +14,89 @@ for a user with _login/login_.
 ### Login POST@login/login
 
 Request Body
-- user: str, alias the new user wishes to associate with their account.
-- pass: str, key to login to user account.
+- username: str, alias the new user wishes to associate with their account.
+- password: str, key to login to user account.
+- email: str, email associated with the account for recovery.
 
 Response Header
-- Set-Cookie: STSESSIONID=portfolioId-randomLong-timestamp, Max-Age=3600.
+- Set-Cookie: STSESSIONID=portfolioId-randomLong-timestamp;Max-Age=3600.
+  
+    This is a unique cookie corresponding to a user's active session. This
+indicates to the server who is executing the request with userId and login
+timestamp info bundled.
 
-Success: 200: "Login Successful!"
+Success: `200 OK` "Login Successful!"
 
-Failure: 400: "Failed to register the user."
+Failure: `400 BAD_REQUEST` "Failed to log user in - credentials did not match."
 
 ### Register POST@login/register
+
 Request Body
-- user: str, alias the new user wishes to associate with their account.
-- pass: str, key to log in to user account.
-- email: str, email used for account recovery.
+- username: str, alias the new user wishes to associate with their account.
+- password: str, key to log in to user account.
+- email: str, email associated with the account for recovery.
 
-Success: 201: "User successfully registered."
+Success: `201 CREATED` "User successfully registered."
 
-Failure: 400: "Failed to register the user."
+Failure can occur on the request lacking any of the required parameters or because a user of the provided username already exists. Note that a user is allowed to create multiple usernames with the same email - this simulates having multiple portfolios or accoutns.
+
+Failure: `400 BAD_REQUEST`
+- username clash: "Failed to register the user - username clash."
+- no username/password/email: "Failed to register the user - no \<username/password/email> provided."
 
 ## Order Requests
 
 These requests require order information and the sessionID of the requesting
 user.
 
-### Place a Market Order POST@order/placeMarketOrder
+### Place a Order POST@order/placeOrder
+
+Request Header
+- Cookie: STSESSIONID=portfolioId-randomLong-timestamp;Max-Age=3600
+
 Request Body
--  a
-Response Body
-### Cancel Order DELETE@order/cancelOrder/{sessionId}&{orderId}
-Request Path: sessionId&orderId
-- sessionID: unique cookie corresponding to a user's active session. This
-indicates to the server who is executing the request with userId and login
-timestamp info bundled.
+-  type: str, one of "STOP","LIMIT", or "MARKET" for the associated order type
+-  portfolioId: long, unique identifier of requesting user
+-  ticker: str, symbol associated with requested asset
+-  quantity: int, amount of asset requested
+-  side: str, either "BUY" or "SELL" for buy orders or sell orders, respectively
+-  price: float, relevant price for a Limit Order or Stop Order
+
+Success: `201 CREATED` Order successfully placed.
+
+Failure: `400 BAD_REQUEST` Failed to make an order.
+
+### Cancel Order DELETE@order/cancelOrder/{orderId}
+
+Request Path: orderId
 - orderId: unique ID associated with an order. This ID is returned by any
 request that places an order and should be sent back upon cancellation.
+
+Request Header
+- Cookie: STSESSIONID=portfolioId-randomLong-timestamp;Max-Age=3600
+  
+Success: `200 OK` "Order successfully cancelled."
+
+Failure `400 BAD_REQUEST` "Failred to cancel the request order: \<orderId>."
 
 
 
 ## Dashboard Requests
 
-### Get Portfolio Value GET@dashboard/getPFValue/{sessionId}
+### Get Portfolio Value GET@dashboard/getPFValue
 _NOT IMPLEMENTED_
 
-Request Body:
-- sessionID: str, sessionID(cookie value) of the current logged-in session
+Request Header
+- Cookie: STSESSIONID=portfolioId-randomLong-timestamp;Max-Age=3600
 
 Response:
 - 
 
-### Get Total Cash Amount GET@dashboard/getCash/{sessionId}
+### Get Total Cash Amount GET@dashboard/getCash
 _NOT IMPLEMENTED_
 
-Request:
-- sessionID: str, sessionID(cookie value) of the current logged-in session
+Request Header
+- Cookie: STSESSIONID=portfolioId-randomLong-timestamp;Max-Age=3600
 
 Response:
 - 
@@ -80,26 +108,42 @@ Request Path:
 Response Body:
 - price: float, price of stock
 
-Success: 200: "Stock data successfully retrieved."
-Failure: 400: "Failed to fetch stock data for requested asset: {symbol}"
+Success: `200 OK` "Stock data successfully retrieved."
+Failure: `400 BAD_REQUEST` "Failed to fetch stock data for requested asset: \<symbol>"
 
 
 ### Get Stock Historical Data GET@dashboard/getStockHistory/{symbol}&{range}
+
+_NOT IMPLEMENTED_
+
 Request Body: 
 - symbol: str, the symbol of the relevant asset (e.g., stock ticker GOOG)
-- range: str, the time range over which financial data are retrieved for the asset.
-The range must be one of the following: [DY1, WK1, MO1, MO6, YTD, YR1, YR5, ALL].
-Response:
+- range: str, the time range over which financial data are retrieved for the asset. The range must be one of the following as strings: [DY1, WK1, MO1, MO6, YTD, YR1, YR5, ALL].
 
-Response Body:
-- a
 
-### Get All User Transaction History GET@dashboard/getTransactionHistory/{sessionId}
+### Get All User Transaction History GET@dashboard/getTransactionHistory
 _NOT IMPLEMENTED_
 
-### Get All User Pending Order History GET@dashboard/getPendingOrders/{sessionId}
+Request Header
+- Cookie: STSESSIONID=portfolioId-randomLong-timestamp;Max-Age=3600
+
+### Get All User Pending Order History GET@dashboard/getPendingOrders
 _NOT IMPLEMENTED_
 
+Request Header
+- Cookie: STSESSIONID=portfolioId-randomLong-timestamp;Max-Age=3600
 
-### Get All User Holding GET@dashboard/getHoldings/{sessionId}
-_NOT IMPLEMENTED_
+
+### Get All User Holding GET@dashboard/getHoldings
+
+Request Header
+- Cookie: STSESSIONID=portfolioId-randomLong-timestamp;Max-Age=3600
+
+Response `200 OK`
+- `List` of `Holding`:
+  - id, str: \<portfolioId>_\<symbol>
+  - portfolioId, str
+  - symbol, str
+  - quantity, int
+  - lastPurchasePrice, float
+  - lastPurchaseDate, int

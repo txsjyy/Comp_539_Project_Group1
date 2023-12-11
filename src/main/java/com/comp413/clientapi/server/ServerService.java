@@ -1,10 +1,11 @@
 package com.comp413.clientapi.server;
 
+import com.comp413.clientapi.api.ClientApiController;
 import com.comp413.clientapi.dbapi.BigTableManager;
 import com.comp413.clientapi.dbapi.holding.Holding;
 import com.comp413.clientapi.dbapi.user.User;
 import com.comp413.clientapi.obj.credentialsRequest;
-import com.comp413.clientapi.obj.marketOrderRequest;
+import com.comp413.clientapi.obj.orderRequest;
 import com.comp413.clientapi.obj.timeRange;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
@@ -14,13 +15,10 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
-import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
-
-import static java.lang.System.exit;
 
 /**
  * This is the server to hold state and handle requests.
@@ -74,16 +72,15 @@ public class ServerService {
             return new ResponseEntity<>("Failed to log user in - credentials did not match.", HttpStatus.BAD_REQUEST);
 
         // Construct cookie value
-        Long pfID = 1L;  // temp until DB gives us pfID for user after validating.
-        Long random_val = RANDOM.nextLong();
+        String pfID = String.valueOf(1L);  // temp until DB gives us pfID for user after validating.
+        String random_val = String.valueOf(RANDOM.nextLong());
         String time_stamp = timestamp();
-        String cookie_val = String.valueOf(pfID) + "-" + String.valueOf(random_val) + "-" + time_stamp;
+        String cookie_val = pfID + "-" + random_val + "-" + time_stamp;
 
-        // TODO: determine if it is more useful to track pfID or username with cookie
         ONLINE_MAP.put(cookie_val, String.valueOf(pfID));
 
         // Cookie lasts for 1hr
-        HttpCookie cookie = ResponseCookie.from("STSESSIONID", cookie_val)
+        HttpCookie cookie = ResponseCookie.from(ClientApiController.login_cookie_name, cookie_val)
                 .maxAge(3600)
                 .build();
 
@@ -105,6 +102,17 @@ public class ServerService {
     public ResponseEntity<String> register(credentialsRequest request) {
 
         String username = request.username();
+        String password = request.password();
+        String email = request.email();
+
+        if (username == null)
+            return new ResponseEntity<>("No username provided.", HttpStatus.BAD_REQUEST);
+
+        if (password == null)
+            return new ResponseEntity<>("No password provided.", HttpStatus.BAD_REQUEST);
+
+        if (email == null)
+            return new ResponseEntity<>("No email provided.", HttpStatus.BAD_REQUEST);
 
         // need to check if user exists before writing new user
 
@@ -113,6 +121,7 @@ public class ServerService {
                 request.email(),
                 request.password(),
                 null, null, null, null);
+
         DB.writeNewUser(user);
 
         return new ResponseEntity<>("User \"" + username + "\" successfully registered.", HttpStatus.CREATED);
@@ -126,16 +135,35 @@ public class ServerService {
      * @return              Upon success, a brief message with a 200 OK code is returned.
      */
     public ResponseEntity<String> cancelOrder(String sessionId, String orderId) {
-        // use sessionId to ping DB if that user has order? or just pass to finsim
 
         String portfolioId = ONLINE_MAP.get(sessionId);
-        return handleDeleteRequest(
-                "cancel-order/" + orderId,
-                "Order successfully cancelled.",
-                HttpStatus.OK,
-                "Failed to cancel the requested order " + orderId,
-                HttpStatus.BAD_REQUEST
-        );
+        // use sessionId to ping DB if that user has order
+
+        // craft FinSim request
+        String url = fin_sim_url + "cancel-order/" + orderId;
+        HttpRequest req = HttpRequest.newBuilder()
+                .uri(URI.create(url))
+                .header("Content-Type", "application/json")
+                .method("patch", HttpRequest.BodyPublishers.noBody())
+                .build();
+
+        // Attempt to send request
+        try {
+            String succMsg = "Order successfully cancelled.";
+            HttpStatusCode succCode = HttpStatus.OK;
+            HttpResponse<String> response = CLIENT.send(req, HttpResponse.BodyHandlers.ofString());
+            String logstring = succMsg + "\n" +
+                    "\n[" + response.statusCode() + "] " + response.body();
+            System.out.println(logstring);
+            return new ResponseEntity<>(logstring, succCode);
+        } catch (Exception e) {
+            e.printStackTrace();
+            String failMsg = "Failed to cancel the requested order: " + orderId;
+            HttpStatusCode failCode = HttpStatus.BAD_REQUEST;
+            return new ResponseEntity<>(failMsg, failCode);
+        }
+
+
     }
 
     /**
@@ -144,11 +172,11 @@ public class ServerService {
      * @param request   All the necessary information needed to process a market order.
      * @return          Upon success, a brief message with a 201 CREATED code is returned.
      */
-    public ResponseEntity<String> placeMarketOrder(String sessionId, marketOrderRequest request) {
+    public ResponseEntity<String> placeOrder(String sessionId, orderRequest request) {
         return handlePostRequest(
                 "place-market-order/",
                 request.toString(),
-                "Market order successfully placed.",
+                "Order successfully placed.",
                 HttpStatus.CREATED,
                 "Failed to make an order.",
                 HttpStatus.BAD_REQUEST
@@ -182,13 +210,6 @@ public class ServerService {
      * @return          If asset exists, the response contained data pertinent to the symbol.
      */
     public ResponseEntity<String> getStock(String symbol) {
-//        return handleGetRequest(
-//                db_url + "database/getStock/" + symbol,
-//                "Stock data successfully retrieved.",
-//                HttpStatus.OK,
-//                "Failed to fetch stock data for requested asset: " + symbol,
-//                HttpStatus.BAD_REQUEST
-//        );
         // pass params for requested data
         return handleGetRequest(
                 "get-asset-price/" + symbol,
@@ -197,7 +218,6 @@ public class ServerService {
                 "Failed to fetch stock data for requested asset: " + symbol,
                 HttpStatus.BAD_REQUEST
         );
-//        return new ResponseEntity<>(HttpStatus.NOT_IMPLEMENTED);
     }
 
     /**
@@ -207,30 +227,33 @@ public class ServerService {
      * @return          If asset exists, the response contains historical data related to it
      */
     public ResponseEntity<String> fetchHistoricalData(String symbol, timeRange range) {
-        return handleGetRequest(
-                //TODO: need correct URL for getting historical data
-                "historicalData/" + symbol,
-                "Stock data successfully retrieved.",
-                HttpStatus.OK,
-                "Failed to fetch stock data for requested asset: " + symbol,
-                HttpStatus.BAD_REQUEST
-        );
+//        DB.getStockDataUsingTimeRanged()
+
+//        return handleGetRequest(
+//                //TODO: need correct URL for getting historical data
+//                "historicalData/" + symbol,
+//                "Stock data successfully retrieved.",
+//                HttpStatus.OK,
+//                "Failed to fetch stock data for requested asset: " + symbol,
+//                HttpStatus.BAD_REQUEST
+//        );
+        return new ResponseEntity<>(HttpStatus.NOT_IMPLEMENTED);
     }
 
     /**
      * Validates that an order is possible to fulfill
-     * @param marketOrderRequest    the order that is intended
+     * @param orderRequest    the order that is intended
      * @return                      true if the order can be fulfilled, false if not
      */
-    public boolean validateOrder(marketOrderRequest marketOrderRequest) {
+    public boolean validateOrder(orderRequest orderRequest) {
         // Check if ticker is valid
-        if (!isValidTicker(marketOrderRequest.ticker())) {
+        if (!isValidTicker(orderRequest.ticker())) {
             System.out.println("Invalid ticker");
             return false;
         }
 
         // Check if user has enough funds (you'll likely need another service for this)
-        if (!hasSufficientFunds(marketOrderRequest.userId(), marketOrderRequest.quantity())) {
+        if (!hasSufficientFunds(orderRequest.portfolioId(), orderRequest.quantity())) {
             System.out.println("Insufficient funds");
             return false;
         }
@@ -257,7 +280,7 @@ public class ServerService {
      * @param quantity      the quantity of stock desired
      * @return              true if the user has sufficient funds, false if not
      */
-    private boolean hasSufficientFunds(int userId, int quantity) {
+    private boolean hasSufficientFunds(long userId, int quantity) {
         //TODO: implement this
         return quantity <= 100;
     }
@@ -270,7 +293,7 @@ public class ServerService {
      */
     public ResponseEntity<String> getTransactionHistory(String sessionId) {
         String portfolioId = ONLINE_MAP.get(sessionId);
-        return new ResponseEntity<>(HttpStatus.OK);
+        return new ResponseEntity<>(HttpStatus.NOT_IMPLEMENTED);
 
     }
 
@@ -282,7 +305,7 @@ public class ServerService {
      */
     public ResponseEntity<String> getPendingOrders(String sessionId) {
         String portfolioId = ONLINE_MAP.get(sessionId);
-        return new ResponseEntity<>(HttpStatus.OK);
+        return new ResponseEntity<>(HttpStatus.NOT_IMPLEMENTED);
 
     }
 
@@ -294,7 +317,7 @@ public class ServerService {
      */
     public ResponseEntity<String> getCancelledOrders(String sessionId) {
         String portfolioId = ONLINE_MAP.get(sessionId);
-        return new ResponseEntity<>(HttpStatus.OK);
+        return new ResponseEntity<>(HttpStatus.NOT_IMPLEMENTED);
 
     }
 
@@ -320,7 +343,7 @@ public class ServerService {
      * @param succCode  HTTP code returned upon successful fulfillment of request
      * @param failMsg   brief message explaining the failed request
      * @param failCode  HTTP code returned upon unsuccessful fulfillment of request
-     * @return          response containing brief details regarding request
+     * @return          response containing results of request
      */
     private ResponseEntity<String> handleGetRequest(String suffix, String succMsg, HttpStatus succCode, String failMsg, HttpStatus failCode) {
 
@@ -334,10 +357,11 @@ public class ServerService {
 
         try {
             HttpResponse<String> response = CLIENT.send(req, HttpResponse.BodyHandlers.ofString());
+            String body = response.body();
             String logstring = succMsg + "\n" +
-                    "\n[" + response.statusCode() + "] " + response.body();
+                    "\n[" + response.statusCode() + "] " + body;
             System.out.println(logstring);
-            return new ResponseEntity<>(logstring, succCode);
+            return new ResponseEntity<>(body, succCode);
         } catch (Exception e) {
             e.printStackTrace();
             return new ResponseEntity<>(failMsg, failCode);
@@ -368,38 +392,6 @@ public class ServerService {
         try {
             HttpResponse<String> response = CLIENT.send(req, HttpResponse.BodyHandlers.ofString());
             String logstring = succMsg + "\n" + reqBody +
-                    "\n[" + response.statusCode() + "] " + response.body();
-            System.out.println(logstring);
-            return new ResponseEntity<>(logstring, succCode);
-        } catch (Exception e) {
-            e.printStackTrace();
-            return new ResponseEntity<>(failMsg, failCode);
-        }
-    }
-
-    /**
-     * Helper method to easily handle POST requests in a uniform fashion.
-     *
-     * @param suffix    location of API endpoint relative to fin_sim API URL to where the data are re-routed
-     * @param succMsg   brief message explaining the successful request
-     * @param succCode  HTTP code returned upon successful fulfillment of request
-     * @param failMsg   brief message explaining the failed request
-     * @param failCode  HTTP code returned upon unsuccessful fulfillment of request
-     * @return          response containing brief details regarding request
-     */
-    private ResponseEntity<String> handleDeleteRequest(String suffix, String succMsg, HttpStatus succCode, String failMsg, HttpStatus failCode) {
-
-        String url = fin_sim_url + suffix;
-
-        HttpRequest req = HttpRequest.newBuilder()
-                .uri(URI.create(url))
-                .header("Content-Type", "application/json")
-                .DELETE()
-                .build();
-
-        try {
-            HttpResponse<String> response = CLIENT.send(req, HttpResponse.BodyHandlers.ofString());
-            String logstring = succMsg + "\n" +
                     "\n[" + response.statusCode() + "] " + response.body();
             System.out.println(logstring);
             return new ResponseEntity<>(logstring, succCode);

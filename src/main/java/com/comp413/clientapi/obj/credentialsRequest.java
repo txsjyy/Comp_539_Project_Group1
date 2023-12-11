@@ -13,8 +13,6 @@ public record credentialsRequest(
         String username,
         String password,
         String email
-//        String registrationTimestamp,
-//        String portfolioId
 ) {
     @Override
     public String toString() {
@@ -22,8 +20,6 @@ public record credentialsRequest(
                 "\"username\":\"" + username + '\"' +
                 ", \"password\":\"" + password + '\"' +
                 ", \"email\":\"" + email + '\"' +
-//                ", \"registrationTimestamp:\"" + registrationTimestamp + '\"' +
-//                ", \"portfolioId:\"" + portfolioId + '\"' +
                 '}';
     }
 }
