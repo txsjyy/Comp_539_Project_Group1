@@ -1,5 +1,7 @@
 package com.comp413.clientapi.server;
 
+import com.comp413.clientapi.dbapi.BigTableManager;
+import com.comp413.clientapi.dbapi.user.User;
 import com.comp413.clientapi.obj.credentialsRequest;
 import com.comp413.clientapi.obj.marketOrderRequest;
 import com.comp413.clientapi.obj.timeRange;
@@ -8,6 +10,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
+import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -16,6 +19,8 @@ import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
+
+import static java.lang.System.exit;
 
 /**
  * This is the server to hold state and handle requests.
@@ -45,10 +50,16 @@ public class ServerService {
     final HttpClient CLIENT;
 
     /**
+     * Database handler
+     */
+    final BigTableManager DB;
+
+    /**
      * No-arg server constructor.
      */
-    public ServerService() {
+    public ServerService() throws IOException {
         CLIENT = HttpClient.newHttpClient();
+        DB = new BigTableManager();
     }
 
     /**
@@ -60,59 +71,21 @@ public class ServerService {
      */
     public ResponseEntity<String> login(credentialsRequest request) {
 
-        if (!authenticate(request.username(), request.password()))
+
+        if (!DB.validateUser(request.username(), request.password()))
             return new ResponseEntity<>("Failed to log user in - credentials did not match.", HttpStatus.BAD_REQUEST);
 
-        java.time.ZonedDateTime time = java.time.ZonedDateTime.now();
-        String timestamp = time.toString();
-        String portfolioId = String.valueOf(RANDOM.nextLong());
-        // Append necessary items to response body
-        String body = request.toString();
-        body = body.substring(0, body.length()-1);
-        // TODO: handle timestamp in server
-        body += ", \"registrationTimestamp\": \"" + timestamp + "\"";
-        // TODO: handle portfolio ID generation in DB
-        body += ", \"portfolioId\": \"" + portfolioId + "\"";
-        // Enclose JSON format in ending bracket
-        body += "}";
+        String cookie = String.valueOf(RANDOM.nextLong());
 
-        // TODO: figure out how to compare a user/pass pair to those in DB w/o requesting full data.
-        HttpRequest req = HttpRequest.newBuilder()
-                .uri(URI.create(db_url + "database/users"))
-                .header("Content-Type", "application/json")
-                .POST(HttpRequest.BodyPublishers.ofString(body))
-                .build();
+//        java.time.ZonedDateTime time = java.time.ZonedDateTime.now();
+//        String timestamp = time.toString();
+//        String portfolioId = String.valueOf(RANDOM.nextLong());
 
-        try {
-            HttpResponse<String> response = CLIENT.send(req, HttpResponse.BodyHandlers.ofString());
-
-            String cookieValue = portfolioId + "-" + RANDOM.nextLong() + "-" + time.format(DateTimeFormatter.ISO_ZONED_DATE_TIME);
-            ONLINE_MAP.put(cookieValue, portfolioId);
-            HttpHeaders headers = new HttpHeaders();
-            headers.add("Set-Cookie", "STSESSIONID=" + cookieValue + "; Max-Age=3600");
-
-            String logstring = "User logged in successfully.\n" + body +
-                    "\n[" + response.statusCode() + "] " + response.body();
-            System.out.println(logstring);
-            return ResponseEntity.status(HttpStatus.OK)
-                    .headers(headers)
-                    .body("Login Successful!");
-        } catch (Exception e) {
-            e.printStackTrace();
-            return new ResponseEntity<>("Failed to log user in - server issue.", HttpStatus.INTERNAL_SERVER_ERROR);
-        }
+        return ResponseEntity.ok()
+                .header(HttpHeaders.SET_COOKIE, cookie)
+                .body("Successful user login.");
     }
 
-    /**
-     * Authenticate a user given their username-password pair.
-     *
-     * @param username      Unique username.
-     * @param password      Matching password.
-     * @return              If authentication is successful, true is returned; else, false.
-     */
-    private boolean authenticate(String username, String password) {
-        return true;
-    }
 
 
     /**
@@ -124,26 +97,17 @@ public class ServerService {
      * @return          Upon successful registration, a brief message with a 201 CREATED status code is returned.
      */
     public ResponseEntity<String> register(credentialsRequest request) {
-        String timeNow = timestamp();
-        String portfolioId = String.valueOf(RANDOM.nextLong());
-        // Append necessary items to response body
-        String body = request.toString();
-        body = body.substring(0, body.length()-1);
-        // TODO: handle timestamp in server
-        body += ", \"registrationTimestamp\": \"" + timeNow + "\"";
-        // TODO: handle portfolio ID generation in DB
-        body += ", \"portfolioId\": \"" + portfolioId + "\"";
-        // Enclose JSON format in ending bracket
-        body += "}";
 
-        return handlePostRequest(
-                db_url + "database/users/storeUser",
-                body,
-                "User successfully registered.",
-                HttpStatus.CREATED,
-                "Failed to register the user.",
-                HttpStatus.BAD_REQUEST);
-//            return new ResponseEntity<>("Cannot register a new user under provided username: such a user already exists", HttpStatus.CONFLICT);
+        // need to check if user exists before writing new user
+
+        User user = new User(
+                request.username(),
+                request.email(),
+                request.password(),
+                null, null, null, null);
+        DB.writeNewUser(user);
+
+        return new ResponseEntity<>("User \"" + request.username() + "\" successfully registered.", HttpStatus.CREATED);
     }
 
     /**
