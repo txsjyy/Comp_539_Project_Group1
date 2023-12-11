@@ -1,6 +1,7 @@
 package com.comp413.clientapi.api;
 
 import com.comp413.clientapi.dbapi.holding.Holding;
+import com.comp413.clientapi.dbapi.order.Order;
 import com.comp413.clientapi.obj.credentialsRequest;
 import com.comp413.clientapi.obj.orderRequest;
 
@@ -147,7 +148,7 @@ public class ClientApiController {
      * @return A list of transaction objects are returned. They are serialized into JSON upon receipt.
      */
     @GetMapping("/dashboard/getTransactionHistory/")
-    public ResponseEntity<String> getTransactionHistory(@CookieValue(value=login_cookie_name) String sessionId) {
+    public ResponseEntity<List<Order>> getTransactionHistory(@CookieValue(value=login_cookie_name) String sessionId) {
         return serverService.getTransactionHistory(sessionId);
     }
 
@@ -158,7 +159,7 @@ public class ClientApiController {
      * @return a list of order objects are returned. They are serialized into JSON upon receipt.
      */
     @GetMapping("/dashboard/getPendingOrders/")
-    public ResponseEntity<String> getPendingOrder(@CookieValue(value=login_cookie_name) String sessionId) {
+    public ResponseEntity<List<Order>> getPendingOrder(@CookieValue(value=login_cookie_name) String sessionId) {
         return serverService.getPendingOrders(sessionId);
     }
 
@@ -169,7 +170,7 @@ public class ClientApiController {
      * @return a list of order objects are returned. They are serialized into JSON upon receipt.
      */
     @GetMapping("/dashboard/getCancelledOrders/")
-    public ResponseEntity<String> getCancelledOrder(@CookieValue(value=login_cookie_name) String sessionId) {
+    public ResponseEntity<List<Order>> getCancelledOrder(@CookieValue(value=login_cookie_name) String sessionId) {
         return serverService.getCancelledOrders(sessionId);
     }
 

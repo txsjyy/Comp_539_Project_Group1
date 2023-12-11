@@ -122,17 +122,55 @@ Request Body:
 
 
 ### Get All User Transaction History GET@dashboard/getTransactionHistory
-_NOT IMPLEMENTED_
 
 Request Header
 - Cookie: STSESSIONID=portfolioId-randomLong-timestamp;Max-Age=3600
+
+Response `200 OK`
+- `List` of `Order`:
+  - id, str: \<portfolioId>_\<symbol>
+  - portfolioId, str
+  - symbol, str
+  - tradeType, str either "BUY" or "SELL"
+  - orderType, str one of "MARKET", "LIMIT", or "STOP"
+  - statusType, str "FILLED" only
+  - quantity, int
+  - price, float
+  - timestamp, str
 
 ### Get All User Pending Order History GET@dashboard/getPendingOrders
-_NOT IMPLEMENTED_
 
 Request Header
 - Cookie: STSESSIONID=portfolioId-randomLong-timestamp;Max-Age=3600
 
+Response `200 OK`
+- `List` of `Order`:
+  - id, str: \<portfolioId>_\<symbol>
+  - portfolioId, str
+  - symbol, str
+  - tradeType, str either "BUY" or "SELL"
+  - orderType, str one of "MARKET", "LIMIT", or "STOP"
+  - statusType, str "PENDING" only
+  - quantity, int
+  - price, float
+  - timestamp, str
+
+### Get All User Cancelled Order History GET@dashboard/getCancelledOrders
+
+Request Header
+- Cookie: STSESSIONID=portfolioId-randomLong-timestamp;Max-Age=3600
+
+Response `200 OK`
+- `List` of `Order`:
+  - id, str: \<portfolioId>_\<symbol>
+  - portfolioId, str
+  - symbol, str
+  - tradeType, str either "BUY" or "SELL"
+  - orderType, str one of "MARKET", "LIMIT", or "STOP"
+  - statusType, str "CANCELLED" only
+  - quantity, int
+  - price, float
+  - timestamp, str
 
 ### Get All User Holding GET@dashboard/getHoldings
 

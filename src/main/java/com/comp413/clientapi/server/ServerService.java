@@ -3,6 +3,7 @@ package com.comp413.clientapi.server;
 import com.comp413.clientapi.api.ClientApiController;
 import com.comp413.clientapi.dbapi.BigTableManager;
 import com.comp413.clientapi.dbapi.holding.Holding;
+import com.comp413.clientapi.dbapi.order.Order;
 import com.comp413.clientapi.dbapi.user.User;
 import com.comp413.clientapi.obj.credentialsRequest;
 import com.comp413.clientapi.obj.orderRequest;
@@ -173,6 +174,13 @@ public class ServerService {
      * @return          Upon success, a brief message with a 201 CREATED code is returned.
      */
     public ResponseEntity<String> placeOrder(String sessionId, orderRequest request) {
+
+        // check stock ticker exists
+        // fetch price with existence check
+        // check user cash vs purchase quantity
+        // is this all done in finsim
+
+
         return handlePostRequest(
                 "place-market-order/",
                 request.toString(),
@@ -241,60 +249,15 @@ public class ServerService {
     }
 
     /**
-     * Validates that an order is possible to fulfill
-     * @param orderRequest    the order that is intended
-     * @return                      true if the order can be fulfilled, false if not
-     */
-    public boolean validateOrder(orderRequest orderRequest) {
-        // Check if ticker is valid
-        if (!isValidTicker(orderRequest.ticker())) {
-            System.out.println("Invalid ticker");
-            return false;
-        }
-
-        // Check if user has enough funds (you'll likely need another service for this)
-        if (!hasSufficientFunds(orderRequest.portfolioId(), orderRequest.quantity())) {
-            System.out.println("Insufficient funds");
-            return false;
-        }
-
-        // Other validation checks go here...
-
-        return true;
-    }
-
-    /**
-     * Checks if the ticker is valid
-     * @param ticker    the ticker to check
-     * @return          true if the ticker is valid, false if not
-     */
-    private boolean isValidTicker(String ticker) {
-        // will check against ticker list in DB to ensure it is a valid ticket
-        //TODO: add database check
-        return ticker != null && !ticker.trim().isEmpty();
-    }
-
-    /**
-     * Checks if the user has sufficient funds for an order
-     * @param userId        the ID of the user
-     * @param quantity      the quantity of stock desired
-     * @return              true if the user has sufficient funds, false if not
-     */
-    private boolean hasSufficientFunds(long userId, int quantity) {
-        //TODO: implement this
-        return quantity <= 100;
-    }
-
-    /**
-     * Get transaction data for a logged-in user from the database. CURRENTLY just fetches (pending) orders.
+     * Get transaction data for a logged-in user from the database. Fetches filled orders.
      *
      * @param sessionId Session cookie of logged-in user.
      * @return          List of (completed) transactions associated with the user.
      */
-    public ResponseEntity<String> getTransactionHistory(String sessionId) {
+    public ResponseEntity<List<Order>> getTransactionHistory(String sessionId) {
         String portfolioId = ONLINE_MAP.get(sessionId);
-        return new ResponseEntity<>(HttpStatus.NOT_IMPLEMENTED);
-
+        List<Order> transactions = DB.getOrders(portfolioId, "filled");
+        return new ResponseEntity<>(transactions, HttpStatus.OK);
     }
 
     /**
@@ -303,10 +266,10 @@ public class ServerService {
      * @param sessionId Session cookie of logged-in user.
      * @return          List of (pending) orders associated with the user.
      */
-    public ResponseEntity<String> getPendingOrders(String sessionId) {
+    public ResponseEntity<List<Order>> getPendingOrders(String sessionId) {
         String portfolioId = ONLINE_MAP.get(sessionId);
-        return new ResponseEntity<>(HttpStatus.NOT_IMPLEMENTED);
-
+        List<Order> pending = DB.getOrders(portfolioId, "pending");
+        return new ResponseEntity<>(pending, HttpStatus.OK);
     }
 
     /**
@@ -315,10 +278,10 @@ public class ServerService {
      * @param sessionId Session cookie of logged-in user.
      * @return          List of cancelled orders associated with the user.
      */
-    public ResponseEntity<String> getCancelledOrders(String sessionId) {
+    public ResponseEntity<List<Order>> getCancelledOrders(String sessionId) {
         String portfolioId = ONLINE_MAP.get(sessionId);
-        return new ResponseEntity<>(HttpStatus.NOT_IMPLEMENTED);
-
+        List<Order> canclled = DB.getOrders(portfolioId, "cancelled");
+        return new ResponseEntity<>(canclled, HttpStatus.OK);
     }
 
     /**
@@ -329,7 +292,6 @@ public class ServerService {
      */
     public ResponseEntity<List<Holding>> getHoldings(String sessionId) {
         String portfolioId = ONLINE_MAP.get(sessionId);
-
         List<Holding> holdings = DB.getHoldings(portfolioId);
         return new ResponseEntity<>(holdings, HttpStatus.OK);
     }
