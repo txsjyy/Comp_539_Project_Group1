@@ -20,6 +20,7 @@ Request Body
 
 Response Header
 - Set-Cookie: STSESSIONID=portfolioId-randomLong-timestamp;Max-Age=3600.
+  Both `portfolioId` and `randomLong` will be strings of non-negative numbers if they are numbers (`portfolioId` need not be a number).
   
     This is a unique cookie corresponding to a user's active session. This
 indicates to the server who is executing the request with userId and login
@@ -84,22 +85,20 @@ Failure `400 BAD_REQUEST` "Failred to cancel the request order: \<orderId>."
 ## Dashboard Requests
 
 ### Get Portfolio Value GET@dashboard/getPFValue
-_NOT IMPLEMENTED_
 
 Request Header
 - Cookie: STSESSIONID=portfolioId-randomLong-timestamp;Max-Age=3600
 
 Response:
-- 
+- Float, current total value of a portfolio's holdings.
 
 ### Get Total Cash Amount GET@dashboard/getCash
-_NOT IMPLEMENTED_
 
 Request Header
 - Cookie: STSESSIONID=portfolioId-randomLong-timestamp;Max-Age=3600
 
 Response:
-- 
+- Float, cash held by user.
 
 ### Get Current Stock Price GET@dashboard/getStock/{symbol}
 Request Path:

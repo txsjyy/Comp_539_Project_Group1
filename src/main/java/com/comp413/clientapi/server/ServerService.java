@@ -8,6 +8,7 @@ import com.comp413.clientapi.dbapi.user.User;
 import com.comp413.clientapi.obj.credentialsRequest;
 import com.comp413.clientapi.obj.orderRequest;
 import com.comp413.clientapi.obj.timeRange;
+import com.google.cloud.Tuple;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 
@@ -36,9 +37,9 @@ public class ServerService {
     final String fin_sim_url = "https://comp-413-finsim-dot-rice-comp-539-spring-2022.uk.r.appspot.com/api/";
 
     /**
-     * Map of SessionId (cookie) to portfolioId (unique users). Maintains data on logged-in users.
+     * Map of SessionId (cookie) to portfolioId,username tuple (unique users). Maintains data on logged-in users.
      */
-    final Map<String, String> ONLINE_MAP = new HashMap<>();
+    final Map<String, Tuple<String, String>> ONLINE_MAP = new HashMap<>();
     /**
      * Random state for generating cookies.
      */
@@ -82,11 +83,11 @@ public class ServerService {
             return new ResponseEntity<>("Failed to log user in - credentials did not match.", HttpStatus.BAD_REQUEST);
 
         // Construct cookie value
-        String random_val = String.valueOf(RANDOM.nextLong());
+        String random_val = String.valueOf(Math.abs(RANDOM.nextLong()));
         String time_stamp = timestamp().replace(" ", "T");  // replace the timestamp space
         String cookie_val = portfolioId + "-" + random_val + "-" + time_stamp;
 
-        ONLINE_MAP.put(cookie_val, portfolioId);
+        ONLINE_MAP.put(cookie_val, Tuple.of(portfolioId, username));
 
         System.out.println(ClientApiController.login_cookie_name);
         System.out.println(cookie_val);
@@ -96,7 +97,7 @@ public class ServerService {
                 .maxAge(3600)
                 .build();
 
-        System.out.println(cookie);
+        System.out.println("Set-Cookie: " + cookie);
 
         return ResponseEntity.ok()
                 .header(HttpHeaders.SET_COOKIE, cookie.toString())
@@ -134,7 +135,8 @@ public class ServerService {
                 request.password(),
                 timestamp(), "", 1.e5f);
 
-        DB.writeNewUser(user);
+        if (!DB.writeNewUser(user))
+            return new ResponseEntity<>("Failed to register the user - username clash.", HttpStatus.BAD_REQUEST);
 
         return new ResponseEntity<>("User \"" + username + "\" successfully registered.", HttpStatus.CREATED);
     }
@@ -148,7 +150,7 @@ public class ServerService {
      */
     public ResponseEntity<String> cancelOrder(String sessionId, String orderId) {
 
-        String portfolioId = ONLINE_MAP.get(sessionId);
+        String portfolioId = ONLINE_MAP.get(sessionId).x();
         // use sessionId to ping DB if order has matching PFID
 
         // craft FinSim request
@@ -207,14 +209,20 @@ public class ServerService {
         );
     }
 
+    public ResponseEntity<Integer> getOnlineCount() {
+        return new ResponseEntity<>(ONLINE_MAP.size(), HttpStatus.OK);
+    }
+
     /**
      * Get portfolio value from DB.
      *
      * @param sessionId     Session cookie of logged-in user.
      * @return              Valuation of portfolio.
      */
-    public ResponseEntity<String> getPFValue(String sessionId) {
-        return new ResponseEntity<>(HttpStatus.NOT_IMPLEMENTED);
+    public ResponseEntity<Float> getPFValue(String sessionId) {
+        String portfolioId = ONLINE_MAP.get(sessionId).x();
+        Float PFvalue = DB.getTotalValue(portfolioId);
+        return new ResponseEntity<>(PFvalue, HttpStatus.OK);
     }
 
     /**
@@ -223,8 +231,10 @@ public class ServerService {
      * @param sessionId     Session cookie of logged-in user.
      * @return              Cash in user's account.
      */
-    public ResponseEntity<String> getCash(String sessionId) {
-        return new ResponseEntity<>(HttpStatus.NOT_IMPLEMENTED);
+    public ResponseEntity<Float> getCash(String sessionId) {
+        String username = ONLINE_MAP.get(sessionId).y();
+        Float cash = DB.getUserCash(username);
+        return new ResponseEntity<>(cash, HttpStatus.OK);
     }
 
     /**
@@ -262,7 +272,7 @@ public class ServerService {
      * @return          List of (completed) transactions associated with the user.
      */
     public ResponseEntity<List<Order>> getTransactionHistory(String sessionId) {
-        String portfolioId = ONLINE_MAP.get(sessionId);
+        String portfolioId = ONLINE_MAP.get(sessionId).x();
         List<Order> transactions = DB.getOrders(portfolioId, "filled");
         return new ResponseEntity<>(transactions, HttpStatus.OK);
     }
@@ -274,7 +284,7 @@ public class ServerService {
      * @return          List of (pending) orders associated with the user.
      */
     public ResponseEntity<List<Order>> getPendingOrders(String sessionId) {
-        String portfolioId = ONLINE_MAP.get(sessionId);
+        String portfolioId = ONLINE_MAP.get(sessionId).x();
         List<Order> pending = DB.getOrders(portfolioId, "pending");
         return new ResponseEntity<>(pending, HttpStatus.OK);
     }
@@ -286,7 +296,7 @@ public class ServerService {
      * @return          List of cancelled orders associated with the user.
      */
     public ResponseEntity<List<Order>> getCancelledOrders(String sessionId) {
-        String portfolioId = ONLINE_MAP.get(sessionId);
+        String portfolioId = ONLINE_MAP.get(sessionId).x();
         List<Order> cancelled = DB.getOrders(portfolioId, "cancelled");
         return new ResponseEntity<>(cancelled, HttpStatus.OK);
     }
@@ -298,7 +308,7 @@ public class ServerService {
      * @return  list of held assets.
      */
     public ResponseEntity<List<Holding>> getHoldings(String sessionId) {
-        String portfolioId = ONLINE_MAP.get(sessionId);
+        String portfolioId = ONLINE_MAP.get(sessionId).x();
         List<Holding> holdings = DB.getHoldings(portfolioId);
         return new ResponseEntity<>(holdings, HttpStatus.OK);
     }

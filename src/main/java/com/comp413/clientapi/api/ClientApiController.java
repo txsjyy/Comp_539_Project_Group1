@@ -79,9 +79,14 @@ public class ClientApiController {
      *
      * @return If the order is successful, the response yields a brief message and a 201 CREATED status.
      */
-    @PostMapping("/order/placeOrder/")
+    @PostMapping("/order/placeOrder")
     public ResponseEntity<String> placeOrder(@CookieValue(value=login_cookie_name) String sessionId, @RequestBody orderRequest request) {
         return serverService.placeOrder(sessionId, request);
+    }
+
+    @GetMapping("/dashboard/getOnlineCount")
+    public ResponseEntity<Integer> getOnlineCount() {
+        return serverService.getOnlineCount();
     }
 
     /**
@@ -103,8 +108,8 @@ public class ClientApiController {
      * @param sessionId     Session cookie of logged-in user.
      * @return              Double value representing a portfolio's value.
      */
-    @GetMapping("/dashboard/getPFValue/")
-    public ResponseEntity<String> getPFValue(@CookieValue(value=login_cookie_name) String sessionId) {
+    @GetMapping("/dashboard/getPFValue")
+    public ResponseEntity<Float> getPFValue(@CookieValue(value=login_cookie_name) String sessionId) {
         return serverService.getPFValue(sessionId);
     }
 
@@ -114,8 +119,8 @@ public class ClientApiController {
      * @param sessionId     Session cookie of logged-in user.
      * @return              Double value representing a user's cash.
      */
-    @GetMapping("/dashboard/getCash/")
-    public ResponseEntity<String> getCash(@CookieValue(value=login_cookie_name) String sessionId) {
+    @GetMapping("/dashboard/getCash")
+    public ResponseEntity<Float> getCash(@CookieValue(value=login_cookie_name) String sessionId) {
         return serverService.getCash(sessionId);
     }
 
@@ -147,7 +152,7 @@ public class ClientApiController {
      * @param sessionId cookie
      * @return A list of transaction objects are returned. They are serialized into JSON upon receipt.
      */
-    @GetMapping("/dashboard/getTransactionHistory/")
+    @GetMapping("/dashboard/getTransactionHistory")
     public ResponseEntity<List<Order>> getTransactionHistory(@CookieValue(value=login_cookie_name) String sessionId) {
         return serverService.getTransactionHistory(sessionId);
     }
@@ -158,7 +163,7 @@ public class ClientApiController {
      * @param sessionId     Session cookie of logged-in user.
      * @return a list of order objects are returned. They are serialized into JSON upon receipt.
      */
-    @GetMapping("/dashboard/getPendingOrders/")
+    @GetMapping("/dashboard/getPendingOrders")
     public ResponseEntity<List<Order>> getPendingOrder(@CookieValue(value=login_cookie_name) String sessionId) {
         return serverService.getPendingOrders(sessionId);
     }
@@ -169,7 +174,7 @@ public class ClientApiController {
      * @param sessionId     Session cookie of logged-in user.
      * @return a list of order objects are returned. They are serialized into JSON upon receipt.
      */
-    @GetMapping("/dashboard/getCancelledOrders/")
+    @GetMapping("/dashboard/getCancelledOrders")
     public ResponseEntity<List<Order>> getCancelledOrder(@CookieValue(value=login_cookie_name) String sessionId) {
         return serverService.getCancelledOrders(sessionId);
     }
@@ -180,7 +185,7 @@ public class ClientApiController {
      * @param sessionId     Session cookie of logged-in user.
      * @return              A user's full list of holdings.
      */
-    @GetMapping("/dashboard/getHoldings/")
+    @GetMapping("/dashboard/getHoldings")
     public ResponseEntity<List<Holding>> getHoldings(@CookieValue(value=login_cookie_name) String sessionId) {
         return serverService.getHoldings(sessionId);
     }
