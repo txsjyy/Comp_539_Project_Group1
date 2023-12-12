@@ -12,7 +12,7 @@ package com.comp413.clientapi.obj;
  */
 public record orderRequest(
         OrderType type,
-        long portfolioId,
+        String portfolioId,
         String ticker,
         int quantity,
         Side side,
@@ -43,7 +43,7 @@ public record orderRequest(
     public String toString() {
         return "{" +
                 "\"orderType\":\"" + type + "\"" +
-                ",\"portfolioId\":" + portfolioId +
+                ",\"portfolioId\":\"" + portfolioId + "\"" +
                 ",\"ticker\":\"" + ticker + "\"" +
                 ",\"quantity\": " + quantity +
                 ",\"side\":\"" + side + "\"" +

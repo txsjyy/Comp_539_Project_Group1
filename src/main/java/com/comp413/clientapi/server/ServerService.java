@@ -16,7 +16,6 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
-import java.time.Instant;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
@@ -77,29 +76,32 @@ public class ServerService {
     public ResponseEntity<String> login(credentialsRequest request) {
 
         String username = request.username();
+        String portfolioId = DB.validateUser(username, request.password());
 
-        if (!DB.validateUser(username, request.password()))
+        if (portfolioId == null)
             return new ResponseEntity<>("Failed to log user in - credentials did not match.", HttpStatus.BAD_REQUEST);
 
         // Construct cookie value
-        String pfID = String.valueOf(1L);  // temp until DB gives us pfID for user after validating.
         String random_val = String.valueOf(RANDOM.nextLong());
-        String time_stamp = timestamp();
-        String cookie_val = pfID + "-" + random_val + "-" + time_stamp;
+        String time_stamp = timestamp().replace(" ", "T");  // replace the timestamp space
+        String cookie_val = portfolioId + "-" + random_val + "-" + time_stamp;
 
-        ONLINE_MAP.put(cookie_val, String.valueOf(pfID));
+        ONLINE_MAP.put(cookie_val, portfolioId);
+
+        System.out.println(ClientApiController.login_cookie_name);
+        System.out.println(cookie_val);
 
         // Cookie lasts for 1hr
         HttpCookie cookie = ResponseCookie.from(ClientApiController.login_cookie_name, cookie_val)
                 .maxAge(3600)
                 .build();
 
+        System.out.println(cookie);
+
         return ResponseEntity.ok()
                 .header(HttpHeaders.SET_COOKIE, cookie.toString())
                 .body("Successful user login.");
     }
-
-
 
     /**
      * Register a user. The user's portfolioId is its unique identifier (for the time being - this setup must change).
@@ -130,7 +132,7 @@ public class ServerService {
                 username,
                 request.email(),
                 request.password(),
-                null, null, null, null, 1.e5f);
+                timestamp(), "", 1.e5f);
 
         DB.writeNewUser(user);
 

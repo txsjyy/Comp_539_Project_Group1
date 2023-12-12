@@ -6,8 +6,6 @@ package com.comp413.clientapi.obj;
  * @param username  name of user
  * @param password  password of user - NOT PROTECTED NOR SECURELY STORED
  * @param email     email of user
-// * @param registrationTimestamp time at which the user registers their account
-// * @param portfolioId   unique identifier of this user's portfolio.
  */
 public record credentialsRequest(
         String username,
@@ -20,6 +18,6 @@ public record credentialsRequest(
                 "\"username\":\"" + username + '\"' +
                 ", \"password\":\"" + password + '\"' +
                 ", \"email\":\"" + email + '\"' +
-                '}';
+                "}";
     }
 }
