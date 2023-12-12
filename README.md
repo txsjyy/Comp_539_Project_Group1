@@ -57,7 +57,6 @@ Request Header
 
 Request Body
 -  type: str, one of "STOP","LIMIT", or "MARKET" for the associated order type
--  portfolioId: long, unique identifier of requesting user
 -  ticker: str, symbol associated with requested asset
 -  quantity: int, amount of asset requested
 -  side: str, either "BUY" or "SELL" for buy orders or sell orders, respectively
