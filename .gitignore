@@ -3,6 +3,7 @@ target/
 !**/src/main/**/target/
 !**/src/test/**/target/
 .mvn
+rice-comp-539-spring-2022-a81a5e720341.json
 
 ### STS ###
 .apt_generated
