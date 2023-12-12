@@ -1,3 +1,12 @@
 com.comp413.clientapi.api
+com.comp413.clientapi.dbapi
+com.comp413.clientapi.dbapi.asset
+com.comp413.clientapi.dbapi.enums
+com.comp413.clientapi.dbapi.examples
+com.comp413.clientapi.dbapi.holding
+com.comp413.clientapi.dbapi.order
+com.comp413.clientapi.dbapi.portfolio
+com.comp413.clientapi.dbapi.user
+com.comp413.clientapi.dbapi.watchlist
 com.comp413.clientapi.obj
 com.comp413.clientapi.server
