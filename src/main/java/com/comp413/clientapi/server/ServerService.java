@@ -6,9 +6,11 @@ import com.comp413.clientapi.dbapi.holding.Holding;
 import com.comp413.clientapi.dbapi.order.Order;
 import com.comp413.clientapi.dbapi.user.User;
 import com.comp413.clientapi.obj.credentialsRequest;
+import com.comp413.clientapi.obj.finsimOrderRequest;
 import com.comp413.clientapi.obj.orderRequest;
 import com.comp413.clientapi.obj.timeRange;
 import com.google.cloud.Tuple;
+import org.springframework.context.annotation.Bean;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 
@@ -39,7 +41,9 @@ public class ServerService {
     /**
      * front-end domain.
      */
-    static final String frontend_domain = "comp-413-frontend-dot-rice-comp-539-spring-2022.uk.r.appspot.com";
+    private final String frontend_domain = "comp-413-frontend-dot-rice-comp-539-spring-2022.uk.r.appspot.com";
+
+    private final String server_domain = "comp-413-clientapi-dot-rice-comp-539-spring-2022.uk.r.appspot.com";
 
     /**
      * Map of SessionId (cookie) to portfolioId,username tuple (unique users). Maintains data on logged-in users.
@@ -92,7 +96,10 @@ public class ServerService {
         String time_stamp = timestamp().replace(" ", "T");  // replace the timestamp space
         String cookie_val = portfolioId + "-" + random_val + "-" + time_stamp;
 
-        ONLINE_MAP.put(cookie_val, Tuple.of(portfolioId, username));
+        Tuple<String, String> data = Tuple.of(portfolioId, username);
+        System.out.println("cookie_val " + cookie_val);
+        System.out.println("tuple " + portfolioId + " " + username);
+        ONLINE_MAP.put(cookie_val, data);
 
         System.out.println(ClientApiController.login_cookie_name);
         System.out.println(cookie_val);
@@ -100,8 +107,10 @@ public class ServerService {
         // Cookie lasts for 1hr
         HttpCookie cookie = ResponseCookie.from(ClientApiController.login_cookie_name, cookie_val)
                 .maxAge(3600)
-                .domain(frontend_domain)
+                .domain(server_domain)
                 .path("/")
+                .sameSite("None")
+                .secure(true)
                 .build();
 
         System.out.println("Set-Cookie: " + cookie);
@@ -146,6 +155,11 @@ public class ServerService {
             return new ResponseEntity<>("Failed to register the user - username clash.", HttpStatus.BAD_REQUEST);
 
         return new ResponseEntity<>("User \"" + username + "\" successfully registered.", HttpStatus.CREATED);
+    }
+
+    public ResponseEntity<String> logout(String sessionId) {
+        ONLINE_MAP.remove(sessionId);
+        return ResponseEntity.ok("Successfully logged out.");
     }
 
     /**
@@ -206,9 +220,19 @@ public class ServerService {
             return new ResponseEntity<>("Order type is invalid. Must be one of \"MARKET\", \"LIMIT\", or \"STOP\"", HttpStatus.BAD_REQUEST);
         }
 
+        String portfolioId = ONLINE_MAP.get(sessionId).x();
+
+        finsimOrderRequest fsreq = new finsimOrderRequest(
+                portfolioId,
+                request.ticker(),
+                request.quantity(),
+                request.side(),
+                request.price()
+        );
+
         return handlePostRequest(
                 order_URL,
-                request.toString(),
+                fsreq.toString(),
                 "Order successfully placed.",
                 HttpStatus.CREATED,
                 "Failed to make an order.",
@@ -227,6 +251,7 @@ public class ServerService {
      * @return              Valuation of portfolio.
      */
     public ResponseEntity<Float> getPFValue(String sessionId) {
+        System.out.println("sessionId: " + sessionId);
         String portfolioId = ONLINE_MAP.get(sessionId).x();
         Float PFvalue = DB.getTotalValue(portfolioId);
         return new ResponseEntity<>(PFvalue, HttpStatus.OK);

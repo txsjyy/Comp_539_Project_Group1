@@ -17,7 +17,12 @@ import java.util.List;
  * Requests are made here and routed through the server.
  */
 @RestController
-@CrossOrigin(origins = "https://comp-413-frontend-dot-rice-comp-539-spring-2022.uk.r.appspot.com", allowCredentials = "true")
+@CrossOrigin(
+        origins = "https://comp-413-frontend-dot-rice-comp-539-spring-2022.uk.r.appspot.com",
+        allowCredentials = "true",
+        exposedHeaders = {"Access-Control-Allow-Credentials", "Set-Cookie"},
+        allowedHeaders = {"Origin", "X-Request-With", "Content-Type", "Accept", "X-PINGOTHER"}
+)
 @RequestMapping("api")
 public class ClientApiController {
 
@@ -62,6 +67,11 @@ public class ClientApiController {
     @PostMapping("/login/register")
     public ResponseEntity<String> register(@RequestBody credentialsRequest request) {
         return serverService.register(request);
+    }
+
+    @GetMapping("/login/logout")
+    public ResponseEntity<String> logout(@CookieValue(value=login_cookie_name) String sessionId) {
+        return serverService.logout(sessionId);
     }
 
     /**
