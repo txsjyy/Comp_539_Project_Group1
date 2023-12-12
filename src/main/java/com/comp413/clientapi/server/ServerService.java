@@ -34,7 +34,12 @@ public class ServerService {
     /**
      * URL to where the server routes FinSim requests
      */
-    final String fin_sim_url = "https://comp-413-finsim-dot-rice-comp-539-spring-2022.uk.r.appspot.com/api/";
+    private final String fin_sim_url = "https://comp-413-finsim-dot-rice-comp-539-spring-2022.uk.r.appspot.com/api/";
+
+    /**
+     * front-end domain.
+     */
+    static final String frontend_domain = "comp-413-frontend-dot-rice-comp-539-spring-2022.uk.r.appspot.com";
 
     /**
      * Map of SessionId (cookie) to portfolioId,username tuple (unique users). Maintains data on logged-in users.
@@ -95,6 +100,8 @@ public class ServerService {
         // Cookie lasts for 1hr
         HttpCookie cookie = ResponseCookie.from(ClientApiController.login_cookie_name, cookie_val)
                 .maxAge(3600)
+                .domain(frontend_domain)
+                .path("/")
                 .build();
 
         System.out.println("Set-Cookie: " + cookie);

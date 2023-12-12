@@ -17,7 +17,7 @@ import java.util.List;
  * Requests are made here and routed through the server.
  */
 @RestController
-@CrossOrigin(origins = "*")
+@CrossOrigin(origins = "https://comp-413-frontend-dot-rice-comp-539-spring-2022.uk.r.appspot.com", allowCredentials = "true")
 @RequestMapping("api")
 public class ClientApiController {
 
