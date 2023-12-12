@@ -43,7 +43,7 @@ public record orderRequest(
     public String toString() {
         return "{" +
                 "\"orderType\":\"" + type + "\"" +
-                ",\"userId\":" + portfolioId +
+                ",\"portfolioId\":" + portfolioId +
                 ",\"ticker\":\"" + ticker + "\"" +
                 ",\"quantity\": " + quantity +
                 ",\"side\":\"" + side + "\"" +

@@ -16,6 +16,10 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.time.Instant;
+import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -49,6 +53,11 @@ public class ServerService {
      * Database handler
      */
     final BigTableManager DB;
+
+    /**
+     * Timestamp formatter
+     */
+    DateTimeFormatter TSFORMATTER = DateTimeFormatter.ofPattern("uuuu-MM-dd HH:mm:ss");
 
     /**
      * No-arg server constructor.
@@ -121,7 +130,7 @@ public class ServerService {
                 username,
                 request.email(),
                 request.password(),
-                null, null, null, null);
+                null, null, null, null, 1.e5f);
 
         DB.writeNewUser(user);
 
@@ -138,7 +147,7 @@ public class ServerService {
     public ResponseEntity<String> cancelOrder(String sessionId, String orderId) {
 
         String portfolioId = ONLINE_MAP.get(sessionId);
-        // use sessionId to ping DB if that user has order
+        // use sessionId to ping DB if order has matching PFID
 
         // craft FinSim request
         String url = fin_sim_url + "cancel-order/" + orderId;
@@ -163,26 +172,31 @@ public class ServerService {
             HttpStatusCode failCode = HttpStatus.BAD_REQUEST;
             return new ResponseEntity<>(failMsg, failCode);
         }
-
-
     }
 
     /**
-     * Place a market order.
+     * Place an order of a valid orderType: MARKET, LIMIT, or STOP.
      *
-     * @param request   All the necessary information needed to process a market order.
+     * @param request   All the necessary information needed to process a order.
      * @return          Upon success, a brief message with a 201 CREATED code is returned.
      */
     public ResponseEntity<String> placeOrder(String sessionId, orderRequest request) {
 
-        // check stock ticker exists
-        // fetch price with existence check
-        // check user cash vs purchase quantity
-        // is this all done in finsim
-
+        // determine endpoint of finsim API based on orderRequest type
+        String order_URL;
+        orderRequest.OrderType order_type = request.type();
+        if (order_type == orderRequest.OrderType.MARKET) {
+            order_URL = "place-market-order/";
+        } else if (order_type == orderRequest.OrderType.LIMIT) {
+            order_URL = "place-limit-order/";
+        } else if (order_type == orderRequest.OrderType.STOP) {
+            order_URL = "place-stop-order/";
+        } else {
+            return new ResponseEntity<>("Order type is invalid. Must be one of \"MARKET\", \"LIMIT\", or \"STOP\"", HttpStatus.BAD_REQUEST);
+        }
 
         return handlePostRequest(
-                "place-market-order/",
+                order_URL,
                 request.toString(),
                 "Order successfully placed.",
                 HttpStatus.CREATED,
@@ -236,15 +250,6 @@ public class ServerService {
      */
     public ResponseEntity<String> fetchHistoricalData(String symbol, timeRange range) {
 //        DB.getStockDataUsingTimeRanged()
-
-//        return handleGetRequest(
-//                //TODO: need correct URL for getting historical data
-//                "historicalData/" + symbol,
-//                "Stock data successfully retrieved.",
-//                HttpStatus.OK,
-//                "Failed to fetch stock data for requested asset: " + symbol,
-//                HttpStatus.BAD_REQUEST
-//        );
         return new ResponseEntity<>(HttpStatus.NOT_IMPLEMENTED);
     }
 
@@ -280,8 +285,8 @@ public class ServerService {
      */
     public ResponseEntity<List<Order>> getCancelledOrders(String sessionId) {
         String portfolioId = ONLINE_MAP.get(sessionId);
-        List<Order> canclled = DB.getOrders(portfolioId, "cancelled");
-        return new ResponseEntity<>(canclled, HttpStatus.OK);
+        List<Order> cancelled = DB.getOrders(portfolioId, "cancelled");
+        return new ResponseEntity<>(cancelled, HttpStatus.OK);
     }
 
     /**
@@ -364,10 +369,10 @@ public class ServerService {
     }
 
     /**
-     * Make zoned timestamp.
-     * @return  A zoned timestamp.
+     * Make UTC timestamp string for the current moment.
+     * @return  A UTC timestamp string.
      */
-    String timestamp() {
-        return java.time.ZonedDateTime.now().toString();
+    private String timestamp() {
+        return ZonedDateTime.now(ZoneOffset.UTC).format(TSFORMATTER);
     }
 }
