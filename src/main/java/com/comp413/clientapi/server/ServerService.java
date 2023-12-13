@@ -211,11 +211,11 @@ public class ServerService {
         String order_URL;
         orderRequest.OrderType order_type = request.type();
         if (order_type == orderRequest.OrderType.MARKET) {
-            order_URL = "place-market-order/";
+            order_URL = "place-market-order";
         } else if (order_type == orderRequest.OrderType.LIMIT) {
-            order_URL = "place-limit-order/";
+            order_URL = "place-limit-order";
         } else if (order_type == orderRequest.OrderType.STOP) {
-            order_URL = "place-stop-order/";
+            order_URL = "place-stop-order";
         } else {
             return new ResponseEntity<>("Order type is invalid. Must be one of \"MARKET\", \"LIMIT\", or \"STOP\"", HttpStatus.BAD_REQUEST);
         }

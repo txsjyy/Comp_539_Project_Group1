@@ -20,11 +20,12 @@ public record finsimOrderRequest(
     @Override
     public String toString() {
         return "{" +
+                "\"userId\":\"\"" +
                 ",\"portfolioId\":\"" + portfolioId + "\"" +
                 ",\"ticker\":\"" + ticker + "\"" +
                 ",\"quantity\": " + quantity +
                 ",\"side\":\"" + side + "\"" +
-                ",\"price\":" + price +
+                ",\"limitPrice\":" + price +
                 "}";
     }
 }
