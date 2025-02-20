@@ -1,6 +1,7 @@
 # Java build output
 target/
 out/
+rice-comp-539-spring-2022-423671897e9b.json
 
 # IntelliJ IDEA specific
 .idea/
