@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/v1/urls")
+@CrossOrigin(origins = "*")
 public class UrlShortenerController {
 
     private final UrlShortenerService urlShortenerService;
