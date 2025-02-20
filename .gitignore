@@ -1,21 +1,26 @@
+# Java build output
 target/
-!.mvn/wrapper/maven-wrapper.jar
-!**/src/main/**/target/
-!**/src/test/**/target/
-.mvn
-rice-comp-539-spring-2022-a81a5e720341.json
+out/
 
-### STS ###
-.apt_generated
-.classpath
-.factorypath
-.project
-.settings
-.springBeans
-.sts4-cache
-
-### IntelliJ IDEA ###
-.idea
-*.iws
+# IntelliJ IDEA specific
+.idea/
 *.iml
-*.ipr
+
+# Maven specific
+.mvn/
+!**/src/main/**/.mvn/wrapper/maven-wrapper.jar
+!**/src/main/**/.mvn/wrapper/maven-wrapper.properties
+
+# Log files
+*.log
+
+# Temporary files
+*.tmp
+*.swp
+*.swo
+*.bak
+
+# IDE ignore
+.DS_Store
+
+
