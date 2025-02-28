@@ -64,6 +64,39 @@ public class BigtableRepository {
         Row row = client.readRow("url_tracking", "url#" + shortCode);
         if (row == null) return null;
 
+        return mapRowToShortUrl(row);
+    }
+
+    public void deleteShortUrl(String shortCode) {
+        client.mutateRow(RowMutation.create("url_tracking", "url#" + shortCode).deleteRow());
+    }
+
+    public List<ShortUrl> getAllUrlsByUserId(String userId) {
+        List<ShortUrl> shortUrls = new ArrayList<>();
+
+        // 1) Read ALL rows from the "url_tracking" table (no filters)
+        client.readRows(Query.create("url_tracking")).forEach(row -> {
+            // 2) Convert each row into a ShortUrl object
+            ShortUrl shortUrl = mapRowToShortUrl(row);
+
+            // 3) Check if the ShortUrl's userId matches
+            if (shortUrl.getUserId().equals(userId)) {
+                shortUrls.add(shortUrl);
+            }
+        });
+
+        return shortUrls;
+    }
+
+    public boolean existsByShortCode(String shortCode) {
+        Row row = client.readRow("url_tracking", "url#" + shortCode);
+        return (row != null);
+    }
+
+    private ShortUrl mapRowToShortUrl(Row row) {
+        // Row key: "url#<shortCode>"
+        String shortCode = row.getKey().toStringUtf8().split("#")[1];
+
         String longUrl = row.getCells("url_info", "long_url").get(0).getValue().toStringUtf8();
         String userId = row.getCells("user_info", "user_id").get(0).getValue().toStringUtf8();
         String creationDate = row.getCells("url_info", "creation_date").get(0).getValue().toStringUtf8();
@@ -72,9 +105,5 @@ public class BigtableRepository {
         boolean isActive = Boolean.parseBoolean(row.getCells("url_info", "is_active").get(0).getValue().toStringUtf8());
 
         return new ShortUrl(shortCode, longUrl, userId, creationDate, expirationDate, oneTime, isActive);
-    }
-
-    public void deleteShortUrl(String shortCode) {
-        client.mutateRow(RowMutation.create("url_tracking", "url#" + shortCode).deleteRow());
     }
 }

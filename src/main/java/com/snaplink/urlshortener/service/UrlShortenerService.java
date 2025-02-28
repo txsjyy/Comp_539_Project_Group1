@@ -6,6 +6,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
+import java.util.List;
 
 @Service
 public class UrlShortenerService {
@@ -26,6 +27,21 @@ public class UrlShortenerService {
     public ShortUrl createShortUrl(String longUrl, String userId, boolean oneTime, String expirationDate) {
         // Generate a short code for the long URL
         String shortCode = generateShortCode(longUrl);
+        return createShortUrlWithCode(shortCode, longUrl, userId, oneTime, expirationDate);
+    }
+
+    // Create Short URL (custom code)
+    public ShortUrl createCustomShortUrl(String customShortCode, String longUrl, String userId, boolean oneTime, String expirationDate) {
+        // Check if the custom short code already exists
+        if (bigtableRepository.existsByShortCode(customShortCode)) {
+            throw new IllegalArgumentException("Short code '" + customShortCode + "' is already in use.");
+        }
+        // If not, create the Short URL with that code
+        return createShortUrlWithCode(customShortCode, longUrl, userId, oneTime, expirationDate);
+    }
+
+    // Helper method to create and persist a ShortUrl object given a short code.
+    private ShortUrl createShortUrlWithCode(String shortCode, String longUrl, String userId, boolean oneTime, String expirationDate) {
         String creationDate = Instant.now().toString();
 
         // Ensure expirationDate is not null
@@ -49,5 +65,15 @@ public class UrlShortenerService {
     // Delete Short URL by code
     public void deleteShortUrl(String shortCode) {
         bigtableRepository.deleteShortUrl(shortCode);
+    }
+
+    // Retrieve all short URLs for a specific user by his ID
+    public List<ShortUrl> getAllUrlsByUser(String userId) {
+        return bigtableRepository.getAllUrlsByUserId(userId);
+    }
+
+    // Check if a short code already exists
+    public boolean shortCodeExists(String shortCode) {
+        return bigtableRepository.existsByShortCode(shortCode);
     }
 }
