@@ -4,8 +4,10 @@
     <div class="content-box">
       <!-- 输入表单 -->
       <template v-if="!showResult">
-        <h2>Creat your short URLs</h2>
-        <p class="description">SnapLink is a free tool to shorten URLs. Enter the URL to find out how many clicks it has received so far.</p>
+        <h2>Create your short URLs</h2>
+        <p class="description">
+          SnapLink is a free tool to shorten URLs. Enter the URL to find out how many clicks it has received so far.
+        </p>
 
         <input
           v-model="longUrl"
@@ -25,8 +27,10 @@
 
       <!-- 结果展示 -->
       <div v-else class="result">
-        <h2>Creat your short URLs</h2>
-        <p class="description">SnapLink is a free tool to shorten URLs. Enter the URL to find out how many clicks it has received so far.</p>
+        <h2>Create your short URLs</h2>
+        <p class="description">
+          SnapLink is a free tool to shorten URLs. Enter the URL to find out how many clicks it has received so far.
+        </p>
 
         <div class="url-group">
           <div class="url-item">
@@ -50,6 +54,9 @@
 
 <script setup lang="ts">
 import { ref } from "vue";
+import { useRouter } from "vue-router";
+
+const router = useRouter();
 
 const longUrl = ref("");
 const customAlias = ref("");
@@ -65,6 +72,7 @@ const shortenUrl = () => {
 
   originalUrl.value = longUrl.value;
   const baseUrl = "http://snap.link/";
+  // 使用用户自定义别名或随机生成 6 位字符
   const path = customAlias.value || Math.random().toString(36).substr(2, 6);
   shortenedUrl.value = baseUrl + path;
   showResult.value = true;
@@ -77,7 +85,10 @@ const resetForm = () => {
 };
 
 const showStatistics = () => {
-  alert("Statistics feature coming soon!");
+  // 假设短链接格式为 http://snap.link/{id}，提取最后一部分作为统计页面的 id
+  const parts = shortenedUrl.value.split("/");
+  const id = parts[parts.length - 1];
+  router.push({ name: "statistics", params: { id } });
 };
 </script>
 
@@ -153,7 +164,6 @@ h2 {
   box-shadow: 0 4px 12px rgba(29, 114, 184, 0.3);
 }
 
-/* 新增结果展示样式 */
 .result {
   text-align: center;
 }
