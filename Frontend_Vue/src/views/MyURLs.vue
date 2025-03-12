@@ -49,9 +49,9 @@
     <div class="modal">
       <h2>Edit Short URL</h2>
       <label>Short URL</label>
-      <input v-model="editingUrl.shortUrl" type="text" />
+      <input v-if="editingUrl" v-model="editingUrl.shortUrl" type="text" />
       <label>Original URL</label>
-      <div class="non-editable-url">{{ editingUrl.originalUrl }}</div>
+      <div class="non-editable-url">{{ editingUrl?.originalUrl ?? 'N/A' }}</div>
       <div class="modal-actions">
         <button @click="saveEdit" class="button">Save</button>
         <button @click="cancelEdit" class="edit-button">Cancel</button>
