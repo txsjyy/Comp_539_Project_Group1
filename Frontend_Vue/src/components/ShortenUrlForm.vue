@@ -1,4 +1,6 @@
 <!-- src/components/ShortenUrlForm.vue -->
+
+
 <template>
   <div class="container">
     <div class="content-box">
@@ -55,6 +57,7 @@
 <script setup lang="ts">
 import { ref } from "vue";
 import { useRouter } from "vue-router";
+import axios from 'axios';
 
 const router = useRouter();
 
@@ -64,19 +67,48 @@ const originalUrl = ref("");
 const shortenedUrl = ref("");
 const showResult = ref(false);
 
-const shortenUrl = () => {
+// const shortenUrl = () => {
+//   if (!longUrl.value) {
+//     alert("Please enter a valid URL");
+//     return;
+//   }
+
+//   originalUrl.value = longUrl.value;
+//   const baseUrl = "http://snap.link/";
+//   // 使用用户自定义别名或随机生成 6 位字符
+//   const path = customAlias.value || Math.random().toString(36).substr(2, 6);
+//   shortenedUrl.value = baseUrl + path;
+//   showResult.value = true;
+// };
+const shortenUrl = async () => {
   if (!longUrl.value) {
     alert("Please enter a valid URL");
     return;
   }
 
-  originalUrl.value = longUrl.value;
-  const baseUrl = "http://snap.link/";
-  // 使用用户自定义别名或随机生成 6 位字符
-  const path = customAlias.value || Math.random().toString(36).substr(2, 6);
-  shortenedUrl.value = baseUrl + path;
-  showResult.value = true;
+  const API = import.meta.env.VITE_API_BASE_URL;
+
+  try {
+    const response = await axios.post(`${API}/api/v1/urls/shorten`, {
+      longUrl: longUrl.value,
+      userId: 'user123', // Replace this with actual user logic if needed
+      oneTime: false,
+      expirationDate: ''
+    });
+
+    const data = response.data;
+
+    originalUrl.value = data.longUrl;
+    shortenedUrl.value = `http://snap.link/${data.shortCode}`;
+    showResult.value = true;
+
+  } catch (error: any) {
+    console.error('Failed to shorten URL:', error);
+    alert(error.response?.data?.message || "Something went wrong.");
+  }
 };
+
+
 
 const resetForm = () => {
   longUrl.value = "";
