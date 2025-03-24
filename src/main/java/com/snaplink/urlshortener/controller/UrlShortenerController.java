@@ -7,7 +7,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/api/v1/urls")
+@RequestMapping("/")
 @CrossOrigin(origins = "*")
 public class UrlShortenerController {
 
@@ -36,14 +36,27 @@ public class UrlShortenerController {
     }
 
     // Retrieve Shortened URL
+//    @GetMapping("/{shortCode}")
+//    public ResponseEntity<ShortUrl> getShortUrl(@PathVariable String shortCode) {
+//        ShortUrl url = urlShortenerService.getShortUrl(shortCode);
+//        if (url == null) {
+//            return ResponseEntity.notFound().build();
+//        }
+//        return ResponseEntity.ok(url);
+//    }
     @GetMapping("/{shortCode}")
-    public ResponseEntity<ShortUrl> getShortUrl(@PathVariable String shortCode) {
+    public ResponseEntity<Void> redirectToLongUrl(@PathVariable String shortCode) {
         ShortUrl url = urlShortenerService.getShortUrl(shortCode);
-        if (url == null) {
+
+        if (url == null || !url.isActive()) {
             return ResponseEntity.notFound().build();
         }
-        return ResponseEntity.ok(url);
+
+        return ResponseEntity.status(302)
+                .header("Location", url.getLongUrl())
+                .build();
     }
+
 
     // Delete Shortened URL
     @DeleteMapping("/{shortCode}")
