@@ -55,13 +55,86 @@
 
 <script setup lang="ts">
 import { ref } from 'vue';
+import { useRouter } from 'vue-router';
+
+const router = useRouter();
 
 const email = ref('');
 const password = ref('');
 const rememberMe = ref(false);
+const isLoading = ref(false);
+const errorMessage = ref('');
 
-const handleLogin = () => {
-  // 后续添加登录逻辑
+const handleLogin = async () => {
+  // 清除旧错误信息
+  errorMessage.value = '';
+
+  // 客户端验证
+  if (!email.value || !password.value) {
+    errorMessage.value = 'Email and password are required';
+    return;
+  }
+
+  if (!isValidEmail(email.value)) {
+    errorMessage.value = 'Please enter a valid email address';
+    return;
+  }
+
+  try {
+    isLoading.value = true;
+
+    const response = await fetch('http://localhost:3000/api/auth/login', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        email: email.value,
+        password: password.value
+      }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.message || 'Login failed');
+    }
+
+    // 根据 "Remember Me" 选择存储方式
+    const storage = rememberMe.value ? localStorage : sessionStorage;
+    storage.setItem('accessToken', data.accessToken);
+    storage.setItem('user', JSON.stringify(data.user));
+
+    // 跳转到仪表盘
+    router.push('/dashboard');
+
+  } catch (error) {
+    console.error('Login error:', error);
+    errorMessage.value = handleLoginError(error);
+  } finally {
+    isLoading.value = false;
+  }
+};
+
+// 邮箱验证函数
+const isValidEmail = (email: string) => {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+};
+
+// 错误处理函数
+const handleLoginError = (error: any) => {
+  if (error.message.includes('Failed to fetch')) {
+    return 'Network error. Please check your connection.';
+  }
+
+  switch (error.message.toLowerCase()) {
+    case 'invalid credentials':
+      return 'Invalid email or password';
+    case 'user not found':
+      return 'Account does not exist';
+    default:
+      return 'Login failed. Please try again.';
+  }
 };
 </script>
 

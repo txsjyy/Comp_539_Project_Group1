@@ -52,27 +52,66 @@
   </template>
   
   <script setup lang="ts">
-  import { ref } from 'vue';
-  
-  const email = ref('');
-  const password = ref('');
-  const confirmPassword = ref('');
-  
-  const handleSignUp = async () => {
+import { ref } from 'vue';
+import { useRouter } from 'vue-router';
+
+const router = useRouter();
+
+const email = ref('');
+const password = ref('');
+const confirmPassword = ref('');
+const subscriptionPlan = ref('free');
+const isLoading = ref(false);
+const errorMessage = ref('');
+
+const handleSignUp = async () => {
   if (password.value !== confirmPassword.value) {
-    alert('Password and confirmation password do not match');
+    errorMessage.value = 'Passwords do not match';
     return;
   }
-  // Call the backend API to register
-  try {
-    // Example: await api.post('/api/signup', { email: email.value, password: password.value })
-    alert('Registration successful, please log in!');
-    // After successful registration, you can redirect to the login page via router
-    // For example: router.push('/login')
-  } catch (error) {
-    console.error(error);
-    alert('Registration failed, please try again!');
+
+  if (!isValidEmail(email.value)) {
+    errorMessage.value = 'Please enter a valid email address';
+    return;
   }
+
+  try {
+    isLoading.value = true;
+    errorMessage.value = '';
+
+    const response = await fetch('http://localhost:3000/api/auth/signup', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        username: email.value, // 使用邮箱作为username
+        email: email.value,
+        password: password.value,
+        confirmPassword: confirmPassword.value,
+        subscriptionPlan: subscriptionPlan.value
+      }),
+    });
+
+    const data = await response.json();
+    console.log(data);
+    if (!response.ok) {
+      throw new Error(data.message || 'Registration failed');
+    }
+
+    alert('Registration successful! Please log in.');
+    router.push('/login');
+    
+  } catch (error) {
+    console.error('Registration error:', error);
+    errorMessage.value = (error as Error).message || 'Registration failed. Please try again.';
+  } finally {
+    isLoading.value = false;
+  }
+};
+
+const isValidEmail = (email: string) => {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 };
 
   </script>
