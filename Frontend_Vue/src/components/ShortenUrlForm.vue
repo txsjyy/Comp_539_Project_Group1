@@ -93,13 +93,14 @@ const shortenUrl = async () => {
       longUrl: longUrl.value,
       userId: 'user123', // Replace this with actual user logic if needed
       oneTime: false,
-      expirationDate: ''
+      expirationDate: '',
+      customAlias: customAlias.value || null
     });
 
     const data = response.data;
 
     originalUrl.value = data.longUrl;
-    shortenedUrl.value = `http://snap.link/${data.shortCode}`;
+    shortenedUrl.value = `https://snaplink.txsjyy.net/${data.shortCode}`;
     showResult.value = true;
 
   } catch (error: any) {

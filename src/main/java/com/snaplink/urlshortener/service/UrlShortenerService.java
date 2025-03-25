@@ -50,7 +50,7 @@ public class UrlShortenerService {
                 : "2030-01-01T00:00:00Z";  // Default expiration date if not provided
 
         // Create the ShortUrl object
-        ShortUrl url = new ShortUrl(shortCode, longUrl, userId, creationDate, finalExpirationDate, oneTime, true);
+        ShortUrl url = new ShortUrl(shortCode, longUrl, userId, creationDate, finalExpirationDate, oneTime, true,shortCode);
 
         // Save to Bigtable
         bigtableRepository.createShortUrl(url);

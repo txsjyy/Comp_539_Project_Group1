@@ -25,25 +25,40 @@ public class UrlShortenerController {
             return ResponseEntity.badRequest().body(null);
         }
 
-        ShortUrl shortUrl = urlShortenerService.createShortUrl(
-                request.getLongUrl(),
-                request.getUserId(),
-                request.isOneTime(),
-                request.getExpirationDate()
-        );
+        ShortUrl shortUrl;
 
-        return ResponseEntity.ok(shortUrl);
+        try {
+            String customAlias = request.getCustomAlias();
+
+            if (customAlias != null && !customAlias.isEmpty()) {
+                // Custom alias logic
+                return ResponseEntity.ok(
+                        urlShortenerService.createCustomShortUrl(
+                                customAlias,
+                                request.getLongUrl(),
+                                request.getUserId(),
+                                request.isOneTime(),
+                                request.getExpirationDate()
+                        )
+                );
+            } else {
+                // Auto-generated alias logic
+                return ResponseEntity.ok(
+                        urlShortenerService.createShortUrl(
+                                request.getLongUrl(),
+                                request.getUserId(),
+                                request.isOneTime(),
+                                request.getExpirationDate()
+                        )
+                );
+            }
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(null); // Optionally return error message
+        }
     }
 
-    // Retrieve Shortened URL
-//    @GetMapping("/{shortCode}")
-//    public ResponseEntity<ShortUrl> getShortUrl(@PathVariable String shortCode) {
-//        ShortUrl url = urlShortenerService.getShortUrl(shortCode);
-//        if (url == null) {
-//            return ResponseEntity.notFound().build();
-//        }
-//        return ResponseEntity.ok(url);
-//    }
+
+
     @GetMapping("/{shortCode}")
     public ResponseEntity<Void> redirectToLongUrl(@PathVariable String shortCode) {
         ShortUrl url = urlShortenerService.getShortUrl(shortCode);
@@ -52,10 +67,16 @@ public class UrlShortenerController {
             return ResponseEntity.notFound().build();
         }
 
+        String destination = url.getLongUrl();
+        if (!destination.startsWith("http://") && !destination.startsWith("https://")) {
+            destination = "https://" + destination;
+        }
+
         return ResponseEntity.status(302)
-                .header("Location", url.getLongUrl())
+                .header("Location", destination)
                 .build();
     }
+
 
 
     // Delete Shortened URL

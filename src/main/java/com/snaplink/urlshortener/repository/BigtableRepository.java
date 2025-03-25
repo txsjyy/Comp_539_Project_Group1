@@ -104,6 +104,6 @@ public class BigtableRepository {
         boolean oneTime = Boolean.parseBoolean(row.getCells("url_info", "one_time").get(0).getValue().toStringUtf8());
         boolean isActive = Boolean.parseBoolean(row.getCells("url_info", "is_active").get(0).getValue().toStringUtf8());
 
-        return new ShortUrl(shortCode, longUrl, userId, creationDate, expirationDate, oneTime, isActive);
+        return new ShortUrl(shortCode, longUrl, userId, creationDate, expirationDate, oneTime, isActive,shortCode);
     }
 }
