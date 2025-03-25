@@ -1,4 +1,4 @@
-package com.comp413.appenginedemo;
+package com.snaplink;
 
 import org.springframework.boot.test.context.SpringBootTest;
 

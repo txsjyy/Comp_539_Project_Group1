@@ -2,9 +2,10 @@
 
 runtime: java17
 entrypoint: java -jar target/snaplink-1.0.0.jar  # Updated JAR file name
-service: snaplink                            # Updated service name
+service: snaplink                        # Updated service name
 
 service_account: sp25-comp539-team1-snaplink@rice-comp-539-spring-2022.iam.gserviceaccount.com
+
 
 # Environment Variables for Google Cloud Authentication
 env_variables:

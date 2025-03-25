@@ -89,7 +89,7 @@ const shortenUrl = async () => {
   const API = import.meta.env.VITE_API_BASE_URL;
 
   try {
-    const response = await axios.post(`${API}/api/v1/urls/shorten`, {
+    const response = await axios.post(`${API}/shorten`, {
       longUrl: longUrl.value,
       userId: 'user123', // Replace this with actual user logic if needed
       oneTime: false,

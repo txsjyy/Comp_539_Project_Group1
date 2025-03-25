@@ -12,9 +12,7 @@
 # below:
 .git
 .gitignore
-
-
-# Target directory for maven builds
-target/
-
+.idea/
 Frontend_Vue/
+target/*
+!target/*.jar
