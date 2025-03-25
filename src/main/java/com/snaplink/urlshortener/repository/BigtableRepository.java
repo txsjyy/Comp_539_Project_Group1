@@ -11,7 +11,10 @@ import org.springframework.stereotype.Repository;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Optional;
+import java.time.LocalDateTime;
 import java.util.List;
+import java.time.format.DateTimeFormatter;
 
 @Repository
 public class BigtableRepository {
@@ -30,22 +33,59 @@ public class BigtableRepository {
         RowMutation mutation = RowMutation.create("user_profiles", "user#" + user.getId())
                 .setCell("personal", "username", user.getUsername())
                 .setCell("personal", "email", user.getEmail())
-                .setCell("personal", "password", user.getPassword())
-                .setCell("subscription", "plan", user.getSubscriptionPlan());
+                .setCell("security", "password", user.getPassword()) // 移动到security列族
+                .setCell("subscription", "plan", user.getSubscriptionPlan())
+                .setCell("metadata", "created_at", user.getCreatedAt().toString()); // 添加创建时间
         client.mutateRow(mutation);
     }
 
     public List<User> getUsers() {
         List<User> users = new ArrayList<>();
         client.readRows(Query.create("user_profiles")).forEach(row -> {
-            String id = row.getKey().toStringUtf8().split("#")[1];
-            String username = row.getCells("personal", "username").get(0).getValue().toStringUtf8();
-            String email = row.getCells("personal", "email").get(0).getValue().toStringUtf8();
-            String password = row.getCells("personal", "password").get(0).getValue().toStringUtf8();
-            String plan = row.getCells("subscription", "plan").get(0).getValue().toStringUtf8();
-            users.add(new User(id, username, email, password, plan));
+            String[] keyParts = row.getKey().toStringUtf8().split("#");
+            String id = keyParts.length > 1 ? keyParts[1] : "";
+            
+            // 解析时间戳
+            String createdAtStr = getCellValue(row, "metadata", "created_at");
+            LocalDateTime createdAt = null;
+            if (createdAtStr != null && !createdAtStr.isEmpty()) {
+                createdAt = LocalDateTime.parse(createdAtStr, DateTimeFormatter.ISO_LOCAL_DATE_TIME);
+            }
+    
+            // 使用完整构造函数
+            User user = new User(
+                id,
+                getCellValue(row, "personal", "username"),
+                getCellValue(row, "personal", "email"),
+                getCellValue(row, "security", "password"),
+                getCellValue(row, "subscription", "plan"),
+                createdAt  // 作为第6个参数
+            );
+            
+            users.add(user);
         });
         return users;
+    }
+    public Optional<User> findByEmail(String email) {
+        List<User> users = getUsers();
+        return users.stream()
+            .filter(user -> email.equals(user.getEmail()))
+            .findFirst();
+    }
+    
+    public boolean existsByUsername(String username) {
+        return getUsers().stream()
+            .anyMatch(user -> username.equals(user.getUsername()));
+    }
+    
+    public boolean existsByEmail(String email) {
+        return findByEmail(email).isPresent();
+    }
+    // 新增辅助方法
+    private String getCellValue(Row row, String family, String qualifier) {
+        return row.getCells(family, qualifier).isEmpty() ? 
+            null : 
+            row.getCells(family, qualifier).get(0).getValue().toStringUtf8();
     }
 
     // ---- URL Operations ----
