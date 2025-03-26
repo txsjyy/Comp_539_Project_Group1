@@ -2,11 +2,15 @@ package com.snaplink.urlshortener.service;
 
 import com.snaplink.urlshortener.model.ShortUrl;
 import com.snaplink.urlshortener.repository.BigtableRepository;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 
 @Service
 public class UrlShortenerService {
@@ -76,4 +80,38 @@ public class UrlShortenerService {
     public boolean shortCodeExists(String shortCode) {
         return bigtableRepository.existsByShortCode(shortCode);
     }
+    public Map<String, Integer> getClickStatsByDay(String shortCode) {
+        return bigtableRepository.getClickStatsByDay(shortCode);
+    }
+    public void recordClick(String shortCode, HttpServletRequest request) {
+        String ipAddress = extractClientIp(request);
+        String userAgent = Optional.ofNullable(request.getHeader("User-Agent")).orElse("Unknown");
+        String referrer = Optional.ofNullable(request.getHeader("Referer")).orElse("Direct");
+        LocalDateTime timestamp = LocalDateTime.now();
+        String geoLocation = ""; // TODO: Use GeoIP service like MaxMind or ip-api.com
+
+
+        bigtableRepository.recordClick(shortCode, ipAddress, referrer, geoLocation, userAgent);
+    }
+    public String extractClientIp(HttpServletRequest request) {
+        String[] headerNames = {
+                "CF-Connecting-IP", // Cloudflare
+                "X-Forwarded-For",  // Proxies/load balancers
+                "Proxy-Client-IP",
+                "WL-Proxy-Client-IP"
+        };
+
+        for (String header : headerNames) {
+            String ip = request.getHeader(header);
+            if (ip != null && !ip.isEmpty() && !"unknown".equalsIgnoreCase(ip)) {
+                // If multiple IPs are present, take the first one
+                return ip.split(",")[0].trim();
+            }
+        }
+
+        return request.getRemoteAddr(); // Fallback
+    }
+
+
+
 }

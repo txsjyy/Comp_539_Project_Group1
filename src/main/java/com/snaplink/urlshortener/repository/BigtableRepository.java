@@ -15,6 +15,8 @@ import java.util.Optional;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.time.format.DateTimeFormatter;
+import java.util.Map;
+import java.util.HashMap;
 
 @Repository
 public class BigtableRepository {
@@ -148,4 +150,43 @@ public class BigtableRepository {
 
         return new ShortUrl(shortCode, longUrl, userId, creationDate, expirationDate, oneTime, isActive,shortCode);
     }
+
+    public Map<String, Integer> getClickStatsByDay(String shortCode) {
+        Map<String, Integer> clickStats = new HashMap<>();
+
+        DateTimeFormatter formatter = DateTimeFormatter.ISO_LOCAL_DATE_TIME;
+
+        client.readRows(Query.create("url_analytics")
+                        .prefix("click#" + shortCode + "#"))
+                .forEach(row -> {
+                    String[] parts = row.getKey().toStringUtf8().split("#");
+                    if (parts.length >= 3) {
+                        String clickTimeStr = parts[2];
+                        try {
+                            LocalDateTime clickTime = LocalDateTime.parse(clickTimeStr, formatter);
+                            String dayOfWeek = clickTime.getDayOfWeek().toString(); // e.g., MONDAY
+                            clickStats.put(dayOfWeek, clickStats.getOrDefault(dayOfWeek, 0) + 1);
+                        } catch (Exception e) {
+                            e.printStackTrace(); // handle malformed timestamps
+                        }
+                    }
+                });
+
+        return clickStats;
+    }
+    public void recordClick(String shortCode, String ipAddress, String referrer, String geoLocation, String userAgent) {
+        String timestamp = LocalDateTime.now().toString(); // e.g., 2025-03-25T20:45:00
+        String rowKey = "click#" + shortCode + "#" + timestamp;
+
+        RowMutation mutation = RowMutation.create("url_analytics", rowKey)
+                .setCell("click_info", "click_count", "1")
+                .setCell("click_info", "ip_address", ipAddress)
+                .setCell("click_info", "referrer", referrer != null ? referrer : "")
+                .setCell("click_info", "geo_location", geoLocation)
+                .setCell("click_info", "userAgent", userAgent != null ? userAgent : "");
+
+        client.mutateRow(mutation);
+    }
+
+
 }

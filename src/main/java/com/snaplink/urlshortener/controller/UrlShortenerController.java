@@ -2,9 +2,11 @@ package com.snaplink.urlshortener.controller;
 
 import com.snaplink.urlshortener.model.ShortUrl;
 import com.snaplink.urlshortener.service.UrlShortenerService;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/")
@@ -60,12 +62,14 @@ public class UrlShortenerController {
 
 
     @GetMapping("/{shortCode}")
-    public ResponseEntity<Void> redirectToLongUrl(@PathVariable String shortCode) {
+    public ResponseEntity<Void> redirectToLongUrl(@PathVariable String shortCode, HttpServletRequest request) {
         ShortUrl url = urlShortenerService.getShortUrl(shortCode);
 
         if (url == null || !url.isActive()) {
             return ResponseEntity.notFound().build();
         }
+        // 👉 Log the click before redirecting
+        urlShortenerService.recordClick(shortCode, request);
 
         String destination = url.getLongUrl();
         if (!destination.startsWith("http://") && !destination.startsWith("https://")) {
@@ -85,4 +89,11 @@ public class UrlShortenerController {
         urlShortenerService.deleteShortUrl(shortCode);
         return ResponseEntity.ok("Short URL deleted successfully.");
     }
+
+    @GetMapping("/analytics/{shortCode}")
+    public ResponseEntity<Map<String, Integer>> getWeeklyAnalytics(@PathVariable String shortCode) {
+        Map<String, Integer> stats = urlShortenerService.getClickStatsByDay(shortCode);
+        return ResponseEntity.ok(stats);
+    }
+
 }
