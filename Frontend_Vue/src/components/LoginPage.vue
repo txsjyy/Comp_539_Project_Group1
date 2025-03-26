@@ -95,7 +95,7 @@ const handleLogin = async () => {
     });
 
     const data = await response.json();
-
+    console.log(data);
     if (!response.ok) {
       throw new Error(data.message || 'Login failed');
     }
@@ -106,7 +106,7 @@ const handleLogin = async () => {
     storage.setItem('user', JSON.stringify(data.user));
 
     // 跳转到仪表盘
-    router.push('/dashboard');
+    router.push('/');
 
   } catch (error) {
     console.error('Login error:', error);

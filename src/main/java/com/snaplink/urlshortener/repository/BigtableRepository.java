@@ -66,8 +66,10 @@ public class BigtableRepository {
         });
         return users;
     }
+
     public Optional<User> findByEmail(String email) {
         List<User> users = getUsers();
+        users.forEach(user -> System.out.println("User email: " + user.getEmail()));
         return users.stream()
             .filter(user -> email.equals(user.getEmail()))
             .findFirst();
