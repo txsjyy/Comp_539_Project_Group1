@@ -66,9 +66,9 @@ private final CustomUserDetailsService userDetailsService;
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
         configuration.setAllowedOrigins(Arrays.asList(
-            "http://localhost:5173", "comp-539-project-group1.vercel.app",
-                "comp-539-project-group1-git-main-jennydus-projects-f31cd568.vercel.app",
-                "comp-539-project-group1-flypb3t5d-jennydus-projects-f31cd568.vercel.app"
+            "http://localhost:5173", "https://comp-539-project-group1.vercel.app",
+                "https://comp-539-project-group1-git-main-jennydus-projects-f31cd568.vercel.app",
+                "https://comp-539-project-group1-flypb3t5d-jennydus-projects-f31cd568.vercel.app"
         ));
         configuration.setAllowedMethods(Arrays.asList("*"));
         configuration.setAllowedHeaders(Arrays.asList("*"));
