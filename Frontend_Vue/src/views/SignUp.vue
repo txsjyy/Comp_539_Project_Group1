@@ -78,8 +78,8 @@ const handleSignUp = async () => {
   try {
     isLoading.value = true;
     errorMessage.value = '';
-
-    const response = await fetch('http://localhost:3000/api/auth/signup', {
+    const API = import.meta.env.VITE_API_BASE_URL;
+    const response = await fetch(API+'/api/auth/signup', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
