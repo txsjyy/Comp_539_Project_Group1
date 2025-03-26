@@ -18,7 +18,7 @@
         />
         <input
           v-model="customAlias"
-          placeholder="Enter alias"
+          placeholder="Enter Custom alias name (Optional)"
           class="input-box"
         />
 
