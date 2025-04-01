@@ -151,6 +151,7 @@ public class BigtableRepository {
         return new ShortUrl(shortCode, longUrl, userId, creationDate, expirationDate, oneTime, isActive,shortCode);
     }
 
+    // ---- URL Analytics ----
     public Map<String, Integer> getClickStatsByDay(String shortCode) {
         Map<String, Integer> clickStats = new HashMap<>();
 
