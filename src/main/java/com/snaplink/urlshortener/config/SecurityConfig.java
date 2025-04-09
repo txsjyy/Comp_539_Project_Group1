@@ -51,7 +51,7 @@ private final CustomUserDetailsService userDetailsService;
                 .requestMatchers(new AntPathRequestMatcher("/shorten")).permitAll()
                 .requestMatchers(new AntPathRequestMatcher("/*")).permitAll()
                 .requestMatchers(new AntPathRequestMatcher("/api/auth/**")).permitAll()
-                    .requestMatchers(new AntPathRequestMatcher("/analytics/*")).permitAll()
+                    .requestMatchers(new AntPathRequestMatcher("/analytics/details")).permitAll()
                     .anyRequest().authenticated()
             )
             .sessionManagement(session -> session

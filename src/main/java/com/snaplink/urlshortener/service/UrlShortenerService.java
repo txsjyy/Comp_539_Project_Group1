@@ -80,9 +80,10 @@ public class UrlShortenerService {
     public boolean shortCodeExists(String shortCode) {
         return bigtableRepository.existsByShortCode(shortCode);
     }
-    public Map<String, Integer> getClickStatsByDay(String shortCode) {
-        return bigtableRepository.getClickStatsByDay(shortCode);
+    public List<Map<String, String>> getClickDetails(String shortCode) {
+        return bigtableRepository.getClickDetails(shortCode);
     }
+
     public void recordClick(String shortCode, HttpServletRequest request) {
         String ipAddress = extractClientIp(request);
         String userAgent = Optional.ofNullable(request.getHeader("User-Agent")).orElse("Unknown");

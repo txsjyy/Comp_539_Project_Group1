@@ -152,29 +152,23 @@ public class BigtableRepository {
     }
 
     // ---- URL Analytics ----
-    public Map<String, Integer> getClickStatsByDay(String shortCode) {
-        Map<String, Integer> clickStats = new HashMap<>();
+    public List<Map<String, String>> getClickDetails(String shortCode) {
+        List<Map<String, String>> clickRecords = new ArrayList<>();
 
-        DateTimeFormatter formatter = DateTimeFormatter.ISO_LOCAL_DATE_TIME;
-
-        client.readRows(Query.create("url_analytics")
-                        .prefix("click#" + shortCode + "#"))
+        client.readRows(Query.create("url_analytics").prefix("click#" + shortCode + "#"))
                 .forEach(row -> {
-                    String[] parts = row.getKey().toStringUtf8().split("#");
-                    if (parts.length >= 3) {
-                        String clickTimeStr = parts[2];
-                        try {
-                            LocalDateTime clickTime = LocalDateTime.parse(clickTimeStr, formatter);
-                            String dayOfWeek = clickTime.getDayOfWeek().toString(); // e.g., MONDAY
-                            clickStats.put(dayOfWeek, clickStats.getOrDefault(dayOfWeek, 0) + 1);
-                        } catch (Exception e) {
-                            e.printStackTrace(); // handle malformed timestamps
-                        }
-                    }
+                    Map<String, String> record = new HashMap<>();
+                    record.put("timestamp", row.getKey().toStringUtf8().split("#")[2]);
+                    record.put("ip_address", getCellValue(row, "click_info", "ip_address"));
+                    record.put("referrer", getCellValue(row, "click_info", "referrer"));
+                    record.put("userAgent", getCellValue(row, "click_info", "userAgent"));
+                    record.put("geo_location", getCellValue(row, "click_info", "geo_location"));
+                    clickRecords.add(record);
                 });
 
-        return clickStats;
+        return clickRecords;
     }
+
     public void recordClick(String shortCode, String ipAddress, String referrer, String geoLocation, String userAgent) {
         String timestamp = LocalDateTime.now().toString(); // e.g., 2025-03-25T20:45:00
         String rowKey = "click#" + shortCode + "#" + timestamp;

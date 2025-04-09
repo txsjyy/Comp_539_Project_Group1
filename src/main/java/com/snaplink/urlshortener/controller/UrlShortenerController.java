@@ -6,7 +6,12 @@ import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.List;
 import java.util.Map;
+
 
 @RestController
 @RequestMapping("/")
@@ -62,13 +67,33 @@ public class UrlShortenerController {
 
 
     @GetMapping("/{shortCode}")
-    public ResponseEntity<Void> redirectToLongUrl(@PathVariable String shortCode, HttpServletRequest request) {
+    public ResponseEntity<?> redirectToLongUrl(@PathVariable String shortCode, HttpServletRequest request) {
         ShortUrl url = urlShortenerService.getShortUrl(shortCode);
 
         if (url == null || !url.isActive()) {
-            return ResponseEntity.notFound().build();
+            return ResponseEntity.status(404).body("This link is no longer active.");
         }
-        // 👉 Log the click before redirecting
+
+        try {
+            LocalDateTime now = LocalDateTime.now();
+            LocalDateTime creation = LocalDateTime.parse(url.getCreationDate(), DateTimeFormatter.ISO_DATE_TIME);
+            LocalDateTime expiration = LocalDateTime.parse(url.getExpirationDate(), DateTimeFormatter.ISO_DATE_TIME);
+
+            // Special 24-hour rule for user123
+            if ("user123".equalsIgnoreCase(url.getUserId())) {
+                expiration = creation.plusHours(24);
+            }
+
+            if (now.isAfter(expiration)) {
+                // You can optionally mark the link inactive in the DB here
+                return ResponseEntity.ok("Your link has expired.");
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace(); // Skip check on parse failure
+        }
+
+        // Log click before redirect
         urlShortenerService.recordClick(shortCode, request);
 
         String destination = url.getLongUrl();
@@ -83,6 +108,7 @@ public class UrlShortenerController {
 
 
 
+
     // Delete Shortened URL
     @DeleteMapping("/{shortCode}")
     public ResponseEntity<String> deleteShortUrl(@PathVariable String shortCode) {
@@ -90,10 +116,17 @@ public class UrlShortenerController {
         return ResponseEntity.ok("Short URL deleted successfully.");
     }
 
-    @GetMapping("/analytics/{shortCode}")
-    public ResponseEntity<Map<String, Integer>> getWeeklyAnalytics(@PathVariable String shortCode) {
-        Map<String, Integer> stats = urlShortenerService.getClickStatsByDay(shortCode);
-        return ResponseEntity.ok(stats);
+    @PostMapping("/analytics/details")
+    public ResponseEntity<List<Map<String, String>>> getClickDetails(@RequestBody Map<String, String> body) {
+        String shortCode = body.get("shortCode");
+
+        if (shortCode == null || shortCode.isEmpty()) {
+            return ResponseEntity.badRequest().build();
+        }
+
+        List<Map<String, String>> details = urlShortenerService.getClickDetails(shortCode);
+        return ResponseEntity.ok(details);
     }
+
 
 }
