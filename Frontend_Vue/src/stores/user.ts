@@ -7,16 +7,14 @@ export const useUserStore = defineStore('user', {
   }),
   
   actions: {
-    setUser(userId: string) {
-      this.userId = userId
-      this.isLoggedIn = true
+    setUser(id: string) {
+      this.userId = id;
+      this.isLoggedIn = true;
     },
     
     clearUser() {
-      this.userId = null
-      this.isLoggedIn = false
+      this.userId = null;
+      this.isLoggedIn = false;
     }
-  },
-  
-  persist: true
+  }
 }) 
