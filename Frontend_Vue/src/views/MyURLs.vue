@@ -2,10 +2,21 @@
   <div class="container">
     <h1 class="title">My Shortened URLs</h1>
 
+    <!-- 错误提示 -->
+    <div v-if="error" class="error-message">
+      {{ error }}
+    </div>
+
     <!-- 搜索框 -->
     <input v-model="searchQuery" class="search-input" placeholder="Search URLs..." />
 
-    <div class="table-container">
+    <!-- 加载状态 -->
+    <div v-if="isLoading" class="loading">
+      Loading...
+    </div>
+
+    <!-- 数据表格 -->
+    <div v-else class="table-container">
       <table class="table">
         <thead>
           <tr>
@@ -70,18 +81,62 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from "vue";
+import { ref, computed, onMounted } from "vue";
 import { useRouter } from 'vue-router'
+import { useUserStore } from '../stores/user'
+
+// URL接口定义
+interface URL {
+  id: string;
+  shortUrl: string;
+  originalUrl: string;
+  clickCount: number;
+}
+
 const router = useRouter()
-// 示例数据
-const urls = ref(
-  Array.from({ length: 30 }, (_, i) => ({
-    id: String(i + 1),
-    shortUrl: `https://sho.rt/${Math.random().toString(36).substr(2, 6)}`,
-    originalUrl: `https://example.com/page${i + 1}`,
-    clickCount: Math.floor(Math.random() * 100),
-  }))
-);
+const userStore = useUserStore()
+
+// 数据状态
+const urls = ref<URL[]>([]);
+const isLoading = ref(false);
+const error = ref('');
+
+// 获取用户URL列表
+const fetchUserUrls = async () => {
+  if (!userStore.userId) {
+    error.value = 'User not logged in';
+    return;
+  }
+
+  isLoading.value = true;
+  error.value = '';
+  
+  try {
+    const API = import.meta.env.VITE_API_BASE_URL;
+    const response = await fetch(`${API}/api/urls/user/${userStore.userId}`, {
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('accessToken') || sessionStorage.getItem('accessToken')}`
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to fetch data');
+    }
+
+    const data = await response.json();
+    urls.value = data;
+  } catch (err) {
+    console.error('Failed to fetch URL list:', err);
+    error.value = 'Failed to fetch URL list. Please try again later.';
+  } finally {
+    isLoading.value = false;
+  }
+};
+
+// 组件挂载时获取数据
+onMounted(() => {
+  fetchUserUrls();
+});
 
 const searchQuery = ref("");
 const currentPage = ref(1);
@@ -141,14 +196,37 @@ const triggerEdit = (url: { id: string; shortUrl: string; originalUrl: string; c
 };
 
 // 保存编辑内容，只更新 Short URL
-const saveEdit = () => {
-  if (editingUrl.value) {
+const saveEdit = async () => {
+  if (!editingUrl.value) return;
+
+  try {
+    const API = import.meta.env.VITE_API_BASE_URL;
+    const response = await fetch(`${API}/api/urls/${editingUrl.value.id}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('accessToken') || sessionStorage.getItem('accessToken')}`
+      },
+      body: JSON.stringify({
+        shortUrl: editingUrl.value.shortUrl
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error('Update failed');
+    }
+
+    // 更新本地数据
     const index = urls.value.findIndex((u) => u.id === editingUrl.value!.id);
     if (index !== -1) {
       urls.value[index].shortUrl = editingUrl.value.shortUrl;
     }
+    
     isEditing.value = false;
     editingUrl.value = null;
+  } catch (err) {
+    console.error('Failed to update URL:', err);
+    error.value = 'Update failed. Please try again later.';
   }
 };
 
@@ -387,5 +465,24 @@ const showStatistics = (url: { id: string }) => {
   border-radius: 4px;
   font-size: 16px;
   pointer-events: none;
+}
+
+/* 错误提示样式 */
+.error-message {
+  background-color: #fee2e2;
+  color: #dc2626;
+  padding: 1rem;
+  border-radius: 0.5rem;
+  margin-bottom: 1rem;
+  width: 60%;
+  text-align: center;
+}
+
+/* 加载状态样式 */
+.loading {
+  text-align: center;
+  padding: 2rem;
+  color: #4b5563;
+  font-size: 1.1rem;
 }
 </style>
