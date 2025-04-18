@@ -4,6 +4,7 @@ import LoginView from '../views/LoginView.vue'
 import MyURLs from "../views/MyURLs.vue"
 import Statistics from '../views/Statistics.vue'
 import ForgotPassword from '../views/ForgotPassword.vue'
+import ResetPassword from '../views/ResetPassword.vue'
 import Plans from '../views/Plans.vue'  
 import SignUp from '../views/SignUp.vue'
 import { useUserStore } from '../stores/user'
@@ -39,6 +40,11 @@ const router = createRouter({
       component: ForgotPassword
     },
     {
+      path: '/reset-password/:token',
+      name: 'reset-password',
+      component: ResetPassword
+    },
+    {
       path: '/signup',
       name: 'signup',
       component: SignUp
@@ -53,6 +59,11 @@ const router = createRouter({
 
 router.beforeEach((to, from, next) => {
   const userStore = useUserStore()
+  
+  if (to.path === '/myurls') {
+    next()
+    return
+  }
   
   if (to.meta.requiresAuth && !userStore.isLoggedIn) {
     next('/login')
