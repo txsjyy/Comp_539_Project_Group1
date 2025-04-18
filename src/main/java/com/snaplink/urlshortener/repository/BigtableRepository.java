@@ -30,6 +30,8 @@ public class BigtableRepository {
         this.client = BigtableDataClient.create(projectId, instanceId);
     }
 
+    private static final DateTimeFormatter ISO_FMT = DateTimeFormatter.ISO_LOCAL_DATE_TIME;
+
     // ---- User Operations ----
     public void createUser(User user) {
         RowMutation mutation = RowMutation.create("user_profiles", "user#" + user.getId())
@@ -53,7 +55,14 @@ public class BigtableRepository {
             if (createdAtStr != null && !createdAtStr.isEmpty()) {
                 createdAt = LocalDateTime.parse(createdAtStr, DateTimeFormatter.ISO_LOCAL_DATE_TIME);
             }
-    
+            // optional reset‐token columns
+            String token     = getCellValue(row, "security",     "reset_token");
+            String expiryStr = getCellValue(row, "security",     "reset_token_expiry");
+            LocalDateTime createdAtDt = createdAt == null ? null 
+                : createdAt;
+            LocalDateTime expiryDt    = expiryStr == null  ? null
+                : LocalDateTime.parse(expiryStr, ISO_FMT);
+
             // 使用完整构造函数
             User user = new User(
                 id,
@@ -63,10 +72,29 @@ public class BigtableRepository {
                 getCellValue(row, "subscription", "plan"),
                 createdAt  // 作为第6个参数
             );
-            
+            user.setResetToken(token);
+            user.setResetTokenExpiry(expiryDt);
             users.add(user);
         });
         return users;
+    }
+
+    public void updateUser(User user) {
+        RowMutation mut = RowMutation.create("user_profiles", "user#" + user.getId());
+
+        if (user.getResetToken() != null) {
+            mut.setCell("security", "reset_token", user.getResetToken());
+        } else {
+            mut.deleteCells("security", "reset_token");
+        }
+
+        if (user.getResetTokenExpiry() != null) {
+            mut.setCell("security", "reset_token_expiry", user.getResetTokenExpiry().format(ISO_FMT));
+        } else {
+            mut.deleteCells("security", "reset_token_expiry");
+        }
+
+        client.mutateRow(mut);
     }
 
     public Optional<User> findByEmail(String email) {
@@ -91,7 +119,11 @@ public class BigtableRepository {
             null : 
             row.getCells(family, qualifier).get(0).getValue().toStringUtf8();
     }
-
+    public Optional<User> findByResetToken(String token) {
+        return getUsers().stream()
+                         .filter(u -> token.equals(u.getResetToken()))
+                         .findFirst();
+    }
     // ---- URL Operations ----
     public void createShortUrl(ShortUrl url) {
         RowMutation mutation = RowMutation.create("url_tracking", "url#" + url.getShortCode())

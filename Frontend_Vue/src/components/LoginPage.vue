@@ -117,7 +117,7 @@ const handleLogin = async () => {
     storage.setItem('user', JSON.stringify(data.user));
 
     // 设置用户状态
-    userStore.setUser(data.user.id);
+    // userStore.setUser(data.user.id);
 
     // 跳转到仪表盘
     router.push('/myurls');

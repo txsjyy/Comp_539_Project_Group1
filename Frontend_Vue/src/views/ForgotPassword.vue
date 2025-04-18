@@ -30,19 +30,26 @@
   
   <script setup lang="ts">
   import { ref } from 'vue';
-  
+  import axios from 'axios'
+
   const email = ref('');
-  
+  const API = import.meta.env.VITE_API_BASE_URL;
+
   const handleForgotPassword = async () => {
-    // 在这里调用后端 API 发送重置密码链接
-    try {
-      // 示例: await api.post('/api/forgot-password', { email: email.value })
-      alert('The reset password link has been sent to your email.');
-    } catch (error) {
-      console.error(error);
-      alert('Failed to send, please try again!');
-    }
-  };
+  try {
+    console.log(email.value)
+    const res = await axios.post(
+      `${API}/api/auth/forgot-password`,
+      { email: email.value },
+      { headers: { 'Content-Type': 'application/json' } }
+    )
+    alert(res.data.message || 'Reset link sent—check your inbox!')
+  } catch (err: any) {
+    console.error(err)
+    const msg = err.response?.data?.error || 'Failed to send, please try again!'
+    alert(msg)
+  }
+};
   </script>
   
   <style scoped>

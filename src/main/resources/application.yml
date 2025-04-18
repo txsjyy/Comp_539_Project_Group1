@@ -1,6 +1,33 @@
 server:
-  port: 8080
+  port: 3000
 
 spring:
   main:
     web-application-type: servlet
+
+# src/main/resources/application.yml
+postmark:
+  server-token: 5a4ba68b-b180-4d53-94d3-19f2fc9b96ff
+  template:
+    reset-password-id: 39757986
+    signup-id:         39763891     # ← your “Welcome” template ID
+
+app:
+  mail:
+    from: cw206@rice.edu
+
+
+# values for your “Welcome” template
+  product-name:    SnapLink
+  login-url:       https://snaplink.com/login
+  support-email:   support@snaplink.com
+  live-chat-url:   https://snaplink.com/live-chat
+  sender-name:     SnapLink Support
+  help-url:        https://snaplink.com/help
+  support-url: https://snaplink.com/support
+
+  security:
+    # ← this was missing
+    reset-token-expiration-hours: 1
+  trial:
+      length-days:   14
