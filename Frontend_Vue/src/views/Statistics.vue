@@ -1,236 +1,224 @@
 <template>
   <div class="statistics-container">
-    <h1 class="title">URL Statistics</h1>
-    
-    <!-- 加载状态 -->
-    <div v-if="isLoading" class="loading">
-      Loading statistics...
-    </div>
-    
-    <!-- 错误提示 -->
-    <div v-if="error" class="error-message">
-      {{ error }}
-    </div>
-    
-    <!-- 统计数据展示 -->
-    <div v-if="!isLoading && !error && analyticsData.length > 0" class="stats-grid">
-      <div class="stat-card">
-        <h3>Total Clicks</h3>
-        <p class="stat-value">{{ totalClicks }}</p>
+    <router-link to="/myurls" class="back-button">
+      <span class="arrow">←</span> Back
+    </router-link>
+
+    <h1>Short URL Statistics: https://sho.rt/{{ shortCode }}</h1>
+
+    <div v-if="analyticsData.length">
+      <h3>Total Clicks: {{ analyticsData.length }}</h3>
+      <h3>Unique Visitors: {{ uniqueVisitors }}</h3>
+
+      <div class="controls">
+        <label for="range">Select Range:</label>
+        <select id="range" v-model="selectedRange" @change="updateChart">
+          <option value="3">Last 7 Days</option>
+          <option value="7">Last 15 Days</option>
+          <option value="14">Last 29 Days</option>
+        </select>
+        <button @click="downloadChart">Download Chart</button>
       </div>
-      
-      <div class="stat-card">
-        <h3>Unique Visitors</h3>
-        <p class="stat-value">{{ uniqueVisitors }}</p>
-      </div>
-      
-      <div class="stat-card">
-        <h3>Average Clicks per Day</h3>
-        <p class="stat-value">{{ averageClicksPerDay }}</p>
-      </div>
-    </div>
-    
-    <!-- 点击详情表格 -->
-    <div v-if="!isLoading && !error && analyticsData.length > 0" class="table-container">
-      <h2>Click Details</h2>
-      <table class="table">
+
+      <canvas ref="chartCanvas2" width="600" height="300" style="margin-bottom: 40px;"></canvas>
+
+      <table class="analytics-table">
         <thead>
           <tr>
-            <th>Time</th>
-            <th>IP Address</th>
-            <th>Location</th>
             <th>Referrer</th>
-            <th>Browser</th>
+            <th>Geo Location</th>
+            <th>User Agent</th>
+            <th>IP Address</th>
+            <th>Timestamp</th>
           </tr>
         </thead>
         <tbody>
-          <tr v-for="(click, index) in analyticsData" :key="index">
-            <td>{{ formatDate(click.timestamp) }}</td>
-            <td>{{ click.ip_address }}</td>
-            <td>{{ click.geo_location }}</td>
-            <td>{{ click.referrer || 'Direct' }}</td>
-            <td>{{ click.userAgent }}</td>
+          <tr v-for="(entry, index) in analyticsData" :key="index">
+            <td>{{ entry.referrer || 'N/A' }}</td>
+            <td>{{ entry.geo_location || 'N/A' }}</td>
+            <td>{{ entry.userAgent || 'N/A' }}</td>
+            <td>{{ entry.ip_address }}</td>
+            <td>{{ new Date(entry.timestamp).toLocaleString() }}</td>
           </tr>
         </tbody>
       </table>
     </div>
-    
-    <!-- 无数据提示 -->
-    <div v-if="!isLoading && !error && analyticsData.length === 0" class="no-data">
-      No click data available for this URL.
+
+    <div v-else>
+      <p>Loading or no data found.</p>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
+import { ref, onMounted, nextTick, computed } from 'vue';
 import { useRoute } from 'vue-router';
-import { useUserStore } from '../stores/user';
+import Chart from 'chart.js/auto';
+
+interface AnalyticsEntry {
+  referrer: string;
+  geo_location: string;
+  userAgent: string;
+  ip_address: string;
+  timestamp: string;
+}
 
 const route = useRoute();
-const userStore = useUserStore();
-const urlId = route.params.id as string;
+const shortCode = route.params.id as string;
 
-// 状态
-const analyticsData = ref<any[]>([]);
-const isLoading = ref(false);
-const error = ref('');
+const analyticsData = ref<AnalyticsEntry[]>([]);
+const chartCanvas2 = ref<HTMLCanvasElement | null>(null);
+let chart2: Chart | null = null;
 
-// 计算属性
-const totalClicks = computed(() => analyticsData.value.length);
+const selectedRange = ref(3); // -3 ~ +3
+
+const API = 'https://snaplink-dot-rice-comp-539-spring-2022.uk.r.appspot.com';
+
+const formatTimestamp = (timestamp: string) => {
+  return new Date(timestamp).toLocaleString();
+};
+
 const uniqueVisitors = computed(() => {
-  const uniqueIPs = new Set(analyticsData.value.map(click => click.ip_address));
-  return uniqueIPs.size;
-});
-const averageClicksPerDay = computed(() => {
-  if (analyticsData.value.length === 0) return 0;
-  
-  // 计算日期范围
-  const dates = analyticsData.value.map(click => new Date(click.timestamp));
-  const minDate = new Date(Math.min(...dates.map(d => d.getTime())));
-  const maxDate = new Date(Math.max(...dates.map(d => d.getTime())));
-  
-  // 计算天数差
-  const daysDiff = Math.ceil((maxDate.getTime() - minDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
-  
-  return (analyticsData.value.length / daysDiff).toFixed(1);
+  const uniqueIps = new Set(analyticsData.value.map(entry => entry.ip_address));
+  return uniqueIps.size;
 });
 
-// 获取统计数据
 const fetchAnalytics = async () => {
-  if (!userStore.isLoggedIn) {
-    error.value = 'Please login to view statistics';
-    return;
-  }
-  
-  isLoading.value = true;
-  error.value = '';
-  
   try {
-    const API = import.meta.env.VITE_API_BASE_URL;
     const response = await fetch(`${API}/analytics/details`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${localStorage.getItem('accessToken') || sessionStorage.getItem('accessToken')}`
+        Authorization: `Bearer ${localStorage.getItem('accessToken') || ''}`
       },
-      body: JSON.stringify({
-        urlId: urlId
-      })
+      body: JSON.stringify({ shortCode })
     });
-    
-    if (!response.ok) {
-      throw new Error('Failed to fetch analytics data');
-    }
-    
+
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
     const data = await response.json();
     analyticsData.value = data;
-  } catch (err) {
-    console.error('Error fetching analytics:', err);
-    error.value = 'Failed to load statistics. Please try again later.';
-  } finally {
-    isLoading.value = false;
+  } catch (error) {
+    console.error('Failed to load analytics data:', error);
   }
 };
 
-// 格式化日期
-const formatDate = (timestamp: string) => {
-  const date = new Date(timestamp);
-  return date.toLocaleString();
+const renderClickTimelineChart = (data: AnalyticsEntry[]) => {
+  if (!chartCanvas2.value || !data.length) return;
+  if (chart2) chart2.destroy();
+
+  const dateCounts: Record<string, number> = {};
+  const dateList = data.map(entry => {
+    const dateStr = new Date(entry.timestamp).toISOString().split('T')[0];
+    dateCounts[dateStr] = (dateCounts[dateStr] || 0) + 1;
+    return dateStr;
+  });
+
+  const centralDateStr = Object.entries(dateCounts).sort((a, b) => b[1] - a[1])[0][0];
+  const centralDate = new Date(centralDateStr);
+
+  const labels: string[] = [];
+  const clicksPerDay: Record<string, number> = {};
+
+  for (let i = -selectedRange.value; i <= selectedRange.value; i++) {
+    const tempDate = new Date(centralDate);
+    tempDate.setDate(tempDate.getDate() + i);
+    const label = tempDate.toISOString().split('T')[0];
+    labels.push(label);
+    clicksPerDay[label] = 0;
+  }
+
+  data.forEach(entry => {
+    const day = new Date(entry.timestamp).toISOString().split('T')[0];
+    if (clicksPerDay[day] !== undefined) {
+      clicksPerDay[day]++;
+    }
+  });
+
+  chart2 = new Chart(chartCanvas2.value, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        {
+          label: 'Clicks per Day',
+          data: labels.map(label => clicksPerDay[label]),
+          borderColor: '#2196f3',
+          backgroundColor: 'rgba(33, 150, 243, 0.2)',
+          fill: true,
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      scales: {
+        y: { beginAtZero: true, ticks: { stepSize: 1 } }
+      }
+    }
+  });
 };
 
-// 组件挂载时获取数据
-onMounted(() => {
-  fetchAnalytics();
+const updateChart = () => {
+  if (analyticsData.value.length > 0) {
+    renderClickTimelineChart(analyticsData.value);
+  }
+};
+
+const downloadChart = () => {
+  if (chartCanvas2.value) {
+    const link = document.createElement('a');
+    link.href = chartCanvas2.value.toDataURL('image/png');
+    link.download = `shorturl-statistics-${shortCode}.png`;
+    link.click();
+  }
+};
+
+onMounted(async () => {
+  await fetchAnalytics();
+  await nextTick();
+
+  if (chartCanvas2.value && analyticsData.value.length > 0) {
+    renderClickTimelineChart(analyticsData.value);
+  } else {
+    console.warn("Chart draw skipped: canvas or data not ready.");
+  }
 });
 </script>
 
 <style scoped>
 .statistics-container {
-  padding: 2rem;
-  max-width: 1200px;
-  margin: 0 auto;
+  max-width: 960px;
+  margin: 40px auto;
+  padding: 0 20px;
 }
 
-.title {
-  font-size: 2rem;
-  color: #1a365d;
-  margin-bottom: 2rem;
-  text-align: center;
-}
-
-.loading, .no-data, .error-message {
-  text-align: center;
-  padding: 2rem;
-  font-size: 1.1rem;
-  color: #4b5563;
-}
-
-.error-message {
-  color: #dc2626;
-  background-color: #fee2e2;
-  border-radius: 0.5rem;
-  margin-bottom: 1rem;
-}
-
-.stats-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 1.5rem;
-  margin-bottom: 2rem;
-}
-
-.stat-card {
-  background-color: white;
-  border-radius: 0.5rem;
-  padding: 1.5rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  text-align: center;
-}
-
-.stat-card h3 {
-  color: #4b5563;
-  font-size: 1rem;
-  margin-bottom: 0.5rem;
-}
-
-.stat-value {
+.back-button {
+  display: inline-block;
+  margin-bottom: 20px;
   color: #1d72b8;
-  font-size: 2rem;
-  font-weight: bold;
+  text-decoration: none;
 }
 
-.table-container {
-  background-color: white;
-  border-radius: 0.5rem;
-  padding: 1.5rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  overflow-x: auto;
+.controls {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 20px;
 }
 
-.table-container h2 {
-  color: #1a365d;
-  margin-bottom: 1rem;
-}
-
-.table {
+.analytics-table {
   width: 100%;
   border-collapse: collapse;
+  margin-top: 40px;
 }
 
-.table th, .table td {
-  padding: 0.75rem;
-  text-align: left;
-  border-bottom: 1px solid #e5e7eb;
+.analytics-table th,
+.analytics-table td {
+  border: 1px solid #ddd;
+  padding: 8px;
+  text-align: center;
 }
 
-.table th {
-  background-color: #f9fafb;
-  font-weight: 500;
-  color: #4b5563;
-}
-
-.table tr:hover {
-  background-color: #f9fafb;
+.analytics-table th {
+  background-color: #f4f4f4;
 }
 </style>
