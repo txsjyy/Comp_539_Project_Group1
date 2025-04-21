@@ -62,15 +62,22 @@ public class AuthController {
     @PostMapping("/signup")
     public ResponseEntity<?> signup(@Valid @RequestBody AuthRequest.SignUp request) {
         // 检查用户名/邮箱是否已存在
+        // Check if username exists
         if (repository.existsByUsername(request.getUsername())) {
-            return conflictResponse("Username already exists");
+            return ResponseEntity.status(HttpStatus.CONFLICT)
+                    .body(Map.of("message", "Email already exists"));
         }
+
+        // Check if email exists
         if (repository.existsByEmail(request.getEmail())) {
-            return conflictResponse("Email already registered");
+            return ResponseEntity.status(HttpStatus.CONFLICT)
+                    .body(Map.of("message", "Email already registered"));
         }
-        // 密码一致性验证
+
+        // Check password match
         if (!request.getPassword().equals(request.getConfirmPassword())) {
-            return badRequestResponse("Passwords do not match");
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of("message", "Passwords do not match"));
         }
 
         // 创建用户对象
@@ -226,7 +233,22 @@ private String parseBrowserName(String ua) {
         return ResponseEntity.ok(Map.of("message", "Password has been reset"));
     }
 
-    
+    @DeleteMapping("/delete-user")
+    public ResponseEntity<?> deleteUser(@RequestParam String email) {
+        if (!repository.existsByEmail(email)) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(Map.of("error", "User not found"));
+        }
+
+        try {
+            repository.deleteUserByRowKey(email);
+            return ResponseEntity.ok(Map.of("message", "User deleted successfully"));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Failed to delete user"));
+        }
+    }
+
 
     private Map<String, Object> userResponse(User user) {
         return Map.of(

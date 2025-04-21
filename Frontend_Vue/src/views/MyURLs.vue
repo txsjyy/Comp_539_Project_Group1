@@ -101,30 +101,35 @@ const urls = ref<URL[]>([]);
 const isLoading = ref(false);
 const error = ref('');
 
-// 获取用户URL列表
 const fetchUserUrls = async () => {
-  if (!userStore.userId) {
+  const storedUser = localStorage.getItem('user') || sessionStorage.getItem('user');
+  if (!storedUser) {
     error.value = 'User not logged in';
     return;
   }
 
+  const user = JSON.parse(storedUser);
+  const userId = user.id;
+
   isLoading.value = true;
   error.value = '';
-  
+
   try {
     const API = import.meta.env.VITE_API_BASE_URL;
-    const response = await fetch(`${API}/api/urls/user/${userStore.userId}`, {
-      headers: {
-        'Authorization': `Bearer ${localStorage.getItem('accessToken') || sessionStorage.getItem('accessToken')}`
-      }
-    });
+    const response = await fetch(`${API}/search?query=${userId}`);
 
     if (!response.ok) {
       throw new Error('Failed to fetch data');
     }
 
     const data = await response.json();
-    urls.value = data;
+
+    urls.value = data.map((item: any) => ({
+      id: item.shortCode,
+      shortUrl: `${API.replace(/\/$/, '')}/${item.shortCode}`,
+      originalUrl: item.longUrl,
+      clickCount: 0 // Optionally replace with actual click count
+    }));
   } catch (err) {
     console.error('Failed to fetch URL list:', err);
     error.value = 'Failed to fetch URL list. Please try again later.';
@@ -132,6 +137,11 @@ const fetchUserUrls = async () => {
     isLoading.value = false;
   }
 };
+
+onMounted(() => {
+  fetchUserUrls();
+});
+
 
 // 组件挂载时获取数据
 onMounted(() => {
@@ -184,6 +194,7 @@ const copyUrl = (url: string, event: MouseEvent) => {
   });
 };
 
+
 // 编辑相关状态
 const isEditing = ref(false);
 const editingUrl = ref<{ id: string; shortUrl: string; originalUrl: string; clickCount: number } | null>(null);
@@ -196,37 +207,77 @@ const triggerEdit = (url: { id: string; shortUrl: string; originalUrl: string; c
 };
 
 // 保存编辑内容，只更新 Short URL
+// const saveEdit = async () => {
+//   if (!editingUrl.value) return;
+
+//   try {
+//     const API = import.meta.env.VITE_API_BASE_URL;
+//     const response = await fetch(`${API}/api/urls/${editingUrl.value.id}`, {
+//       method: 'PUT',
+//       headers: {
+//         'Content-Type': 'application/json',
+//         'Authorization': `Bearer ${localStorage.getItem('accessToken') || sessionStorage.getItem('accessToken')}`
+//       },
+//       body: JSON.stringify({
+//         shortUrl: editingUrl.value.shortUrl
+//       })
+//     });
+
+//     if (!response.ok) {
+//       throw new Error('Update failed');
+//     }
+
+//     // 更新本地数据
+//     const index = urls.value.findIndex((u) => u.id === editingUrl.value!.id);
+//     if (index !== -1) {
+//       urls.value[index].shortUrl = editingUrl.value.shortUrl;
+//     }
+
+//     isEditing.value = false;
+//     editingUrl.value = null;
+//   } catch (err) {
+//     console.error('Failed to update URL:', err);
+//     error.value = 'Update failed. Please try again later.';
+//   }
+// };
+
 const saveEdit = async () => {
+  const extractShortCode = (fullUrl: string) => {
+  try {
+    return fullUrl.split('/').pop() || '';
+  } catch {
+    return '';
+  }
+};
+  const oldCode = extractShortCode(editingUrl.value.id);  // ensure it's just the code
+  const newCode = editingUrl.value.shortUrl.trim();
+
   if (!editingUrl.value) return;
 
   try {
     const API = import.meta.env.VITE_API_BASE_URL;
-    const response = await fetch(`${API}/api/urls/${editingUrl.value.id}`, {
+    const response = await fetch(`${API}/update-shortcode`, {
       method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${localStorage.getItem('accessToken') || sessionStorage.getItem('accessToken')}`
-      },
-      body: JSON.stringify({
-        shortUrl: editingUrl.value.shortUrl
-      })
+      body: JSON.stringify({ oldCode, newCode })
     });
 
     if (!response.ok) {
-      throw new Error('Update failed');
+      const errorText = await response.text();
+      throw new Error(errorText || 'Update failed');
     }
 
-    // 更新本地数据
+    // Update local list
     const index = urls.value.findIndex((u) => u.id === editingUrl.value!.id);
     if (index !== -1) {
-      urls.value[index].shortUrl = editingUrl.value.shortUrl;
+      urls.value[index].id = editingUrl.value.shortUrl;
+      urls.value[index].shortUrl = `${API.replace(/\/$/, '')}/${editingUrl.value.shortUrl}`;
     }
-    
+
     isEditing.value = false;
     editingUrl.value = null;
   } catch (err) {
     console.error('Failed to update URL:', err);
-    error.value = 'Update failed. Please try again later.';
+    error.value = 'Update failed: ' + (err as Error).message;
   }
 };
 

@@ -44,6 +44,8 @@ private final CustomUserDetailsService userDetailsService;
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers(new AntPathRequestMatcher("/shorten")).permitAll()
                 .requestMatchers(new AntPathRequestMatcher("/*")).permitAll()
+                    .requestMatchers(new AntPathRequestMatcher("/update-shortcode")).permitAll()
+                    .requestMatchers(new AntPathRequestMatcher("/search")).permitAll()
                 .requestMatchers(new AntPathRequestMatcher("/api/auth/**")).permitAll()
                     .requestMatchers(new AntPathRequestMatcher("/analytics/details")).permitAll()
                     .anyRequest().authenticated()

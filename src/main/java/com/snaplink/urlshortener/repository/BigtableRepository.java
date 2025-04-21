@@ -96,6 +96,11 @@ public class BigtableRepository {
 
         client.mutateRow(mut);
     }
+    public void deleteUserByRowKey(String email) {
+        String rowKey = "user#" + email;
+        client.mutateRow(RowMutation.create("user_profiles", rowKey).deleteRow());
+    }
+
 
     public Optional<User> findByEmail(String email) {
         List<User> users = getUsers();

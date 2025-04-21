@@ -38,6 +38,8 @@
               placeholder="••••••••"
             />
           </div>
+          <p v-if="errorMessage" class="error-message">{{ errorMessage }}</p>
+
 
           <button type="submit" class="auth-button primary">
             Sign Up
@@ -75,17 +77,18 @@ const handleSignUp = async () => {
     return;
   }
 
+
   try {
     isLoading.value = true;
     errorMessage.value = '';
     const API = import.meta.env.VITE_API_BASE_URL;
-    const response = await fetch(API+'/api/auth/signup', {
+    const response = await fetch(`${API}/api/auth/signup`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        username: email.value, // 使用邮箱作为username
+        username: email.value,
         email: email.value,
         password: password.value,
         confirmPassword: confirmPassword.value,
@@ -94,21 +97,67 @@ const handleSignUp = async () => {
     });
 
     const data = await response.json();
-    console.log(data);
+
     if (!response.ok) {
-      errorMessage.value= data.message || 'Registration failed'
+      errorMessage.value = data.error || 'Registration failed';
+      return;
     }
 
     alert('Registration successful! Please log in.');
     router.push('/login');
-
   } catch (error) {
     console.error('Registration error:', error);
-    errorMessage.value = (error as Error).message || 'Registration failed. Please try again.';
+    errorMessage.value = 'Registration failed. Please try again later.';
   } finally {
     isLoading.value = false;
   }
 };
+
+// const handleSignUp = async () => {
+//   if (password.value !== confirmPassword.value) {
+//     errorMessage.value = 'Passwords do not match';
+//     return;
+//   }
+
+//   if (!isValidEmail(email.value)) {
+//     errorMessage.value = 'Please enter a valid email address';
+//     return;
+//   }
+
+//   try {
+//     isLoading.value = true;
+//     errorMessage.value = '';
+//     const API = import.meta.env.VITE_API_BASE_URL;
+//     const response = await fetch(API+'/api/auth/signup', {
+//       method: 'POST',
+//       headers: {
+//         'Content-Type': 'application/json',
+//       },
+//       body: JSON.stringify({
+//         username: email.value, // 使用邮箱作为username
+//         email: email.value,
+//         password: password.value,
+//         confirmPassword: confirmPassword.value,
+//         subscriptionPlan: subscriptionPlan.value
+//       }),
+//     });
+
+//     const data = await response.json();
+//     console.log(data);
+//     if (!response.ok) {
+//       errorMessage.value= data.message || 'Registration failed'
+//     }
+
+//     alert('Registration successful! Please log in.');
+//     router.push('/login');
+
+//   } catch (error) {
+//     console.error('Registration error:', error);
+//     errorMessage.value = (error as Error).message || 'Registration failed. Please try again.';
+//   } finally {
+//     isLoading.value = false;
+//   }
+// };
 
 const isValidEmail = (email: string) => {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);

@@ -4,7 +4,7 @@
       <span class="arrow">←</span> Back
     </router-link>
 
-    <h1>Short URL Statistics: https://sho.rt/{{ shortCode }}</h1>
+    <h1>Short URL Statistics: https://snaplink.txsjyy.net/{{ shortCode }}</h1>
 
     <div v-if="analyticsData.length">
       <h3>Total Clicks: {{ analyticsData.length }}</h3>

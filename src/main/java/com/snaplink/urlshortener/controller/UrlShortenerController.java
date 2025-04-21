@@ -108,15 +108,15 @@ public class UrlShortenerController {
 
     @GetMapping("/search")
     public ResponseEntity<List<ShortUrl>> searchShortUrls(@RequestParam String query) {
-        List<ShortUrl> results = urlShortenerService.searchShortUrls(query);
+        List<ShortUrl> results = urlShortenerService.getAllUrlsByUser(query);
         return ResponseEntity.ok(results);
     }
 
-    @GetMapping("/user/{userId}/urls")
-    public ResponseEntity<List<ShortUrl>> getUrlsByUser(@PathVariable String userId) {
-        List<ShortUrl> urls = urlShortenerService.getAllUrlsByUser(userId);
-        return ResponseEntity.ok(urls);
-    }
+//    @GetMapping("/user/{userId}/urls")
+//    public ResponseEntity<List<ShortUrl>> getUrlsByUser(@PathVariable String userId) {
+//        List<ShortUrl> urls = urlShortenerService.getAllUrlsByUser(userId);
+//        return ResponseEntity.ok(urls);
+//    }
 
 
     // Delete Shortened URL

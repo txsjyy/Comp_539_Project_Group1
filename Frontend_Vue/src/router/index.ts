@@ -5,7 +5,7 @@ import MyURLs from "../views/MyURLs.vue"
 import Statistics from '../views/Statistics.vue'
 import ForgotPassword from '../views/ForgotPassword.vue'
 import ResetPassword from '../views/ResetPassword.vue'
-import Plans from '../views/Plans.vue'  
+import Plans from '../views/Plans.vue'
 import SignUp from '../views/SignUp.vue'
 import { useUserStore } from '../stores/user'
 
@@ -50,7 +50,7 @@ const router = createRouter({
       component: SignUp
     },
     {
-      path: '/plans',   
+      path: '/plans',
       name: 'plans',
       component: Plans
     }
@@ -58,18 +58,25 @@ const router = createRouter({
 })
 
 router.beforeEach((to, from, next) => {
-  const userStore = useUserStore()
-  
-  if (to.path === '/myurls') {
-    next()
-    return
+  const userStore = useUserStore();
+
+  // Try restoring from storage if not already logged in
+  if (!userStore.isLoggedIn) {
+    const storedUser = localStorage.getItem('user') || sessionStorage.getItem('user');
+    if (storedUser) {
+      const parsed = JSON.parse(storedUser);
+      userStore.userId = parsed.id;
+      userStore.isLoggedIn = true;
+    }
   }
-  
+
+  // Handle routes requiring auth
   if (to.meta.requiresAuth && !userStore.isLoggedIn) {
-    next('/login')
+    next('/login');
   } else {
-    next()
+    next();
   }
-})
+});
+
 
 export default router
