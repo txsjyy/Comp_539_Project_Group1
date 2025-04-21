@@ -1,6 +1,7 @@
 package com.snaplink.urlshortener.service;
 
 import com.snaplink.urlshortener.model.ShortUrl;
+import com.snaplink.urlshortener.model.ShortUrlDto;
 import com.snaplink.urlshortener.repository.BigtableRepository;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -11,6 +12,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 public class UrlShortenerService {
@@ -84,7 +86,18 @@ public class UrlShortenerService {
         .sorted((a, b) -> b.getCreationDate().compareTo(a.getCreationDate()))
         .toList();
     }
-    
+    public List<ShortUrlDto> getShortUrlsWithClickCounts(String userId) {
+        List<ShortUrl> shortUrls = getAllUrlsByUser(userId);  // your existing logic
+
+        return shortUrls.stream()
+                .map(url -> {
+                    int clicks = bigtableRepository.getClickCount(url.getShortCode());
+                    return new ShortUrlDto(url, clicks);
+                })
+                .collect(Collectors.toList());
+    }
+
+
 
     // Check if a short code already exists
     public boolean shortCodeExists(String shortCode) {

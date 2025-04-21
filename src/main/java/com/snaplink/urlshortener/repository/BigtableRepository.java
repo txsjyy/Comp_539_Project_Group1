@@ -232,4 +232,11 @@ public class BigtableRepository {
         });
         return matches;
     }
+    public int getClickCount(String shortCode) {
+        int[] count = {0}; // Use array to mutate inside lambda
+        client.readRows(Query.create("url_analytics").prefix("click#" + shortCode + "#"))
+                .forEach(row -> count[0]++);
+        return count[0];
+    }
+
 }

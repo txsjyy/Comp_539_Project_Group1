@@ -128,7 +128,7 @@ const fetchUserUrls = async () => {
       id: item.shortCode,
       shortUrl: `${API.replace(/\/$/, '')}/${item.shortCode}`,
       originalUrl: item.longUrl,
-      clickCount: 0 // Optionally replace with actual click count
+      clickCount: item.clickCount
     }));
   } catch (err) {
     console.error('Failed to fetch URL list:', err);

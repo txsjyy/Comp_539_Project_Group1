@@ -1,6 +1,7 @@
 package com.snaplink.urlshortener.controller;
 
 import com.snaplink.urlshortener.model.ShortUrl;
+import com.snaplink.urlshortener.model.ShortUrlDto;
 import com.snaplink.urlshortener.service.UrlShortenerService;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -106,11 +107,20 @@ public class UrlShortenerController {
                 .build();
     }
 
+//    @GetMapping("/search")
+//    public ResponseEntity<List<ShortUrl>> searchShortUrls(@RequestParam String query) {
+//        List<ShortUrl> results = urlShortenerService.getAllUrlsByUser(query);
+//        return ResponseEntity.ok(results);}
     @GetMapping("/search")
-    public ResponseEntity<List<ShortUrl>> searchShortUrls(@RequestParam String query) {
-        List<ShortUrl> results = urlShortenerService.getAllUrlsByUser(query);
-        return ResponseEntity.ok(results);
+    public ResponseEntity<List<ShortUrlDto>> searchShortUrls(@RequestParam String query) {
+        List<ShortUrlDto> result = urlShortenerService.getShortUrlsWithClickCounts(query);
+        return ResponseEntity.ok(result);
     }
+
+
+
+
+
 
 //    @GetMapping("/user/{userId}/urls")
 //    public ResponseEntity<List<ShortUrl>> getUrlsByUser(@PathVariable String userId) {
