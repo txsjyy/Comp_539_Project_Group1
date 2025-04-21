@@ -30,12 +30,6 @@ private final CustomUserDetailsService userDetailsService;
         this.userDetailsService = userDetailsService;
     }
 
-    // Removed the configure method as it is no longer required in the current configuration style
-    public void configureGlobal(AuthenticationManagerBuilder auth) throws Exception {
-        auth.userDetailsService(userDetailsService)
-            .passwordEncoder(passwordEncoder());
-    }
-
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
@@ -54,9 +48,9 @@ private final CustomUserDetailsService userDetailsService;
                     .requestMatchers(new AntPathRequestMatcher("/analytics/details")).permitAll()
                     .anyRequest().authenticated()
             )
-            .sessionManagement(session -> session
-                .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-            )
+//            .sessionManagement(session -> session
+//                .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+//            )
             .headers(headers -> headers
                 .frameOptions(frame -> frame.disable())
             );

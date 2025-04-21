@@ -1,10 +1,10 @@
 package com.snaplink.urlshortener.controller;
 
-import com.postmarkapp.postmark.Postmark;
-import com.postmarkapp.postmark.client.ApiClient;
-import com.postmarkapp.postmark.client.data.model.message.MessageResponse;
-import com.postmarkapp.postmark.client.exception.InvalidMessageException;
-import com.snaplink.urlshortener.Security.UserDetailsImpl;
+//import com.postmarkapp.postmark.Postmark;
+//import com.postmarkapp.postmark.client.ApiClient;
+//import com.postmarkapp.postmark.client.data.model.message.MessageResponse;
+//import com.postmarkapp.postmark.client.exception.InvalidMessageException;
+//import com.snaplink.urlshortener.Security.UserDetailsImpl;
 import com.snaplink.urlshortener.model.*;
 import com.snaplink.urlshortener.repository.BigtableRepository;
 import com.snaplink.urlshortener.service.EmailService;
@@ -12,17 +12,17 @@ import com.snaplink.urlshortener.service.ResetPasswordRequest;
 
 import jakarta.servlet.http.HttpServletRequest;
 
-import com.postmarkapp.postmark.client.data.model.message.Message;
-
-import org.checkerframework.checker.units.qual.A;
+//import com.postmarkapp.postmark.client.data.model.message.Message;
+//
+//import org.checkerframework.checker.units.qual.A;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
+//import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+//import org.springframework.security.core.Authentication;
+//import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.*;
@@ -68,7 +68,6 @@ public class AuthController {
         if (repository.existsByEmail(request.getEmail())) {
             return conflictResponse("Email already registered");
         }
-
         // 密码一致性验证
         if (!request.getPassword().equals(request.getConfirmPassword())) {
             return badRequestResponse("Passwords do not match");
@@ -108,19 +107,18 @@ public class AuthController {
                     
                 // 手动验证密码
                 boolean isPasswordMatch = encoder.matches(request.getPassword(), user.getPassword());
-                System.out.println("[DEBUG] 密码比对结果: " + isPasswordMatch);
 
                 if (!isPasswordMatch) {
                     throw new BadCredentialsException("密码错误");
                 }
         
-                // 生成认证令牌（可选）
-                Authentication auth = new UsernamePasswordAuthenticationToken(
-                    user.getEmail(),
-                    null,
-                    Collections.emptyList()
-                );
-                SecurityContextHolder.getContext().setAuthentication(auth);
+//                // 生成认证令牌（可选）
+//                Authentication auth = new UsernamePasswordAuthenticationToken(
+//                    user.getEmail(),
+//                    null,
+//                    Collections.emptyList()
+//                );
+//                SecurityContextHolder.getContext().setAuthentication(auth);
         
                 return ResponseEntity.ok(authResponse(user));
             } catch (BadCredentialsException e) {
@@ -240,10 +238,13 @@ private String parseBrowserName(String ua) {
         );
     }
 
+//    private Map<String, Object> authResponse(User user) {
+//        Map<String, Object> response = new HashMap<>(userResponse(user));
+//        response.put("accessToken", "generated-jwt-token");
+//        return response;
+//    }
     private Map<String, Object> authResponse(User user) {
-        Map<String, Object> response = new HashMap<>(userResponse(user));
-        response.put("accessToken", "generated-jwt-token");
-        return response;
+        return userResponse(user);
     }
 
     private ResponseEntity<?> badRequestResponse(String message) {

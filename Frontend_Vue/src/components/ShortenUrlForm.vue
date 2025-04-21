@@ -67,22 +67,16 @@ const originalUrl = ref("");
 const shortenedUrl = ref("");
 const showResult = ref(false);
 
-// const shortenUrl = () => {
-//   if (!longUrl.value) {
-//     alert("Please enter a valid URL");
-//     return;
-//   }
-
-//   originalUrl.value = longUrl.value;
-//   const baseUrl = "http://snap.link/";
-//   // 使用用户自定义别名或随机生成 6 位字符
-//   const path = customAlias.value || Math.random().toString(36).substr(2, 6);
-//   shortenedUrl.value = baseUrl + path;
-//   showResult.value = true;
-// };
 const shortenUrl = async () => {
   if (!longUrl.value) {
     alert("Please enter a valid URL");
+    return;
+  }
+  const storedUser = JSON.parse(localStorage.getItem('user') || sessionStorage.getItem('user') || 'user123');
+  const userId = storedUser?.id;
+
+  if (!userId) {
+    alert("You must be logged in to shorten a URL.");
     return;
   }
 
@@ -91,7 +85,7 @@ const shortenUrl = async () => {
   try {
     const response = await axios.post(`${API}/shorten`, {
       longUrl: longUrl.value,
-      userId: 'user123', // Replace this with actual user logic if needed
+      userId: userId,
       oneTime: false,
       expirationDate: '',
       customAlias: customAlias.value || null

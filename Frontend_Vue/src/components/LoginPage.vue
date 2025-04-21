@@ -65,10 +65,8 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
-import { useUserStore } from '../stores/user';
 
 const router = useRouter();
-const userStore = useUserStore();
 
 const email = ref('');
 const password = ref('');
@@ -111,13 +109,13 @@ const handleLogin = async () => {
       throw new Error(data.message || 'Login failed');
     }
 
-    // 根据 "Remember Me" 选择存储方式
-    const storage = rememberMe.value ? localStorage : sessionStorage;
-    storage.setItem('accessToken', data.accessToken);
-    storage.setItem('user', JSON.stringify(data.user));
+    console.log(data.accessToken,"access");
+    console.log(JSON.stringify(data.user));
 
-    // 设置用户状态
-    // userStore.setUser(data.user.id);
+    console.log(data.id, "userId");
+    const storage = rememberMe.value ? localStorage : sessionStorage;
+    storage.setItem('user', JSON.stringify(data));
+
 
     // 跳转到仪表盘
     router.push('/myurls');

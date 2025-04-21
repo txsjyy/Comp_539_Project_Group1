@@ -39,7 +39,7 @@ public class EmailService {
     @Value("${app.product-name}")
     private String productName;
 
-    @Value("${app.login-url}")
+    @Value("comp-539-project-group1.vercel.app")
     private String loginUrl;
 
     @Value("${app.support-email}")
