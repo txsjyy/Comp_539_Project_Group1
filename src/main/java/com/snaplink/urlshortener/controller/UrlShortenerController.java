@@ -112,6 +112,13 @@ public class UrlShortenerController {
         return ResponseEntity.ok(results);
     }
 
+    @GetMapping("/user/{userId}/urls")
+    public ResponseEntity<List<ShortUrl>> getUrlsByUser(@PathVariable String userId) {
+        List<ShortUrl> urls = urlShortenerService.getAllUrlsByUser(userId);
+        return ResponseEntity.ok(urls);
+    }
+
+
     // Delete Shortened URL
     @DeleteMapping("/{shortCode}")
     public ResponseEntity<String> deleteShortUrl(@PathVariable String shortCode) {
