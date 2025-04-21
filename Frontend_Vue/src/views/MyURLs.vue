@@ -242,6 +242,7 @@ const triggerEdit = (url: { id: string; shortUrl: string; originalUrl: string; c
 // };
 
 const saveEdit = async () => {
+  if (!editingUrl.value) return;
   const extractShortCode = (fullUrl: string) => {
   try {
     return fullUrl.split('/').pop() || '';
