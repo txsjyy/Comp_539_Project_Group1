@@ -137,6 +137,22 @@ public class UrlShortenerController {
         List<Map<String, String>> details = urlShortenerService.getClickDetails(shortCode);
         return ResponseEntity.ok(details);
     }
-
+    @PutMapping("/update-shortcode")
+    public ResponseEntity<String> updateShortCode(@RequestBody Map<String, String> body) {
+        String oldCode = body.get("oldCode");
+        String newCode = body.get("newCode");
+    
+        if (oldCode == null || newCode == null || oldCode.isEmpty() || newCode.isEmpty()) {
+            return ResponseEntity.badRequest().body("Both oldCode and newCode must be provided.");
+        }
+    
+        try {
+            urlShortenerService.updateShortCode(oldCode, newCode);
+            return ResponseEntity.ok("Short code updated successfully.");
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+    
 
 }

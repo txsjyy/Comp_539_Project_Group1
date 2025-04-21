@@ -123,6 +123,22 @@ public class UrlShortenerService {
         return request.getRemoteAddr(); // Fallback
     }
 
-
-
+    public void updateShortCode(String oldCode, String newCode) {
+        if (shortCodeExists(newCode)) {
+            throw new IllegalArgumentException("The new short code is already in use.");
+        }
+    
+        ShortUrl existing = getShortUrl(oldCode);
+        if (existing == null) {
+            throw new IllegalArgumentException("Old short code does not exist.");
+        }
+    
+        // Update the shortCode and customAlias
+        existing.setShortCode(newCode);
+        existing.setCustomAlias(newCode);
+    
+        // Recreate using all original info
+        bigtableRepository.createShortUrl(existing); // directly inserts with current values
+        bigtableRepository.deleteShortUrl(oldCode);
+    }
 }

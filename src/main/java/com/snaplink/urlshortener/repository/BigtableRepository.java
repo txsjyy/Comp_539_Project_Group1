@@ -227,7 +227,4 @@ public class BigtableRepository {
         });
         return matches;
     }
-    
-
-
 }
