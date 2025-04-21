@@ -106,6 +106,12 @@ public class UrlShortenerController {
                 .build();
     }
 
+    @GetMapping("/search")
+    public ResponseEntity<List<ShortUrl>> searchShortUrls(@RequestParam String query) {
+        List<ShortUrl> results = urlShortenerService.searchShortUrls(query);
+        return ResponseEntity.ok(results);
+    }
+
     // Delete Shortened URL
     @DeleteMapping("/{shortCode}")
     public ResponseEntity<String> deleteShortUrl(@PathVariable String shortCode) {

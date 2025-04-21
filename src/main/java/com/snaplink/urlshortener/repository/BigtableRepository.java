@@ -214,5 +214,20 @@ public class BigtableRepository {
         client.mutateRow(mutation);
     }
 
+    public List<ShortUrl> searchShortUrls(String query) {
+        List<ShortUrl> matches = new ArrayList<>();
+        client.readRows(Query.create("url_tracking")).forEach(row -> {
+            ShortUrl url = mapRowToShortUrl(row);
+    
+            if (url.getShortCode().contains(query) ||
+                url.getCustomAlias().contains(query) ||
+                url.getLongUrl().contains(query)) {
+                matches.add(url);
+            }
+        });
+        return matches;
+    }
+    
+
 
 }

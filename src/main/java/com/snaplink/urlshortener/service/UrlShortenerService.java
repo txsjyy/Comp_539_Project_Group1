@@ -76,6 +76,12 @@ public class UrlShortenerService {
         return bigtableRepository.getAllUrlsByUserId(userId);
     }
 
+    // Retrieve all short URLs for a specific user by query
+    public List<ShortUrl> searchShortUrls(String query) {
+        return bigtableRepository.searchShortUrls(query);
+    }
+    
+
     // Check if a short code already exists
     public boolean shortCodeExists(String shortCode) {
         return bigtableRepository.existsByShortCode(shortCode);
