@@ -71,14 +71,18 @@ public class UrlShortenerService {
         bigtableRepository.deleteShortUrl(shortCode);
     }
 
-    // Retrieve all short URLs for a specific user by his ID
+    // Retrieve all short URLs for a specific user by his ID (Sorted by creationDate descending)
     public List<ShortUrl> getAllUrlsByUser(String userId) {
-        return bigtableRepository.getAllUrlsByUserId(userId);
+        return bigtableRepository.getAllUrlsByUserId(userId).stream()
+        .sorted((a, b) -> b.getCreationDate().compareTo(a.getCreationDate()))
+        .toList();
     }
 
-    // Retrieve all short URLs for a specific user by query
+    // Retrieve all short URLs for a specific user by query (Sorted by creationDate descending)
     public List<ShortUrl> searchShortUrls(String query) {
-        return bigtableRepository.searchShortUrls(query);
+        return bigtableRepository.searchShortUrls(query).stream()
+        .sorted((a, b) -> b.getCreationDate().compareTo(a.getCreationDate()))
+        .toList();
     }
     
 
