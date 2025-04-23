@@ -1,10 +1,5 @@
 package com.snaplink.urlshortener.controller;
 
-//import com.postmarkapp.postmark.Postmark;
-//import com.postmarkapp.postmark.client.ApiClient;
-//import com.postmarkapp.postmark.client.data.model.message.MessageResponse;
-//import com.postmarkapp.postmark.client.exception.InvalidMessageException;
-//import com.snaplink.urlshortener.Security.UserDetailsImpl;
 import com.snaplink.urlshortener.model.*;
 import com.snaplink.urlshortener.repository.BigtableRepository;
 import com.snaplink.urlshortener.service.EmailService;
@@ -12,17 +7,11 @@ import com.snaplink.urlshortener.service.ResetPasswordRequest;
 
 import jakarta.servlet.http.HttpServletRequest;
 
-//import com.postmarkapp.postmark.client.data.model.message.Message;
-//
-//import org.checkerframework.checker.units.qual.A;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
-//import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-//import org.springframework.security.core.Authentication;
-//import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.*;
@@ -260,11 +249,6 @@ private String parseBrowserName(String ua) {
         );
     }
 
-//    private Map<String, Object> authResponse(User user) {
-//        Map<String, Object> response = new HashMap<>(userResponse(user));
-//        response.put("accessToken", "generated-jwt-token");
-//        return response;
-//    }
     private Map<String, Object> authResponse(User user) {
         return userResponse(user);
     }
