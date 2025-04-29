@@ -1,4 +1,4 @@
-<!-- src/views/Plans.vue -->
+<!-- Subscription plans view component -->
 <template>
     <div class="plans-container">
       <h1>Our Plans</h1>
@@ -19,6 +19,7 @@
   <script setup lang="ts">
   import { ref } from 'vue';
   
+  // Interface for subscription plan
   interface Plan {
     id: number;
     name: string;
@@ -26,6 +27,7 @@
     features: string[];
   }
   
+  // Available subscription plans
   const plans = ref<Plan[]>([
     {
       id: 1,
@@ -61,18 +63,21 @@
     }
   ]);
   
+  // Handle plan selection
   const buyPlan = (plan: Plan) => {
-    // 集成支付逻辑，或者跳转到支付页面，目前只是弹出提示
+    // TODO: Integrate payment processing or redirect to payment page
     alert(`You have selected the ${plan.name} plan. Payment integration coming soon!`);
   };
   </script>
   
   <style scoped>
+  /* Plans container layout */
   .plans-container {
     text-align: center;
     padding: 2rem;
   }
   
+  /* Plans grid layout */
   .plans-grid {
     display: flex;
     flex-wrap: wrap;
@@ -81,6 +86,7 @@
     margin-top: 2rem;
   }
   
+  /* Plan card styling */
   .plan-card {
     background: #fff;
     border: 1px solid #e2e8f0;
@@ -91,17 +97,20 @@
     transition: transform 0.3s, box-shadow 0.3s;
   }
   
+  /* Plan card hover effect */
   .plan-card:hover {
     transform: translateY(-5px);
     box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
   }
   
+  /* Plan title styling */
   .plan-title {
     font-size: 24px;
     margin-bottom: 10px;
     color: #1d72b8;
   }
   
+  /* Plan price styling */
   .plan-price {
     font-size: 20px;
     font-weight: bold;
@@ -109,6 +118,7 @@
     color: #333;
   }
   
+  /* Plan features list styling */
   .plan-features {
     list-style: none;
     padding: 0;
@@ -116,11 +126,13 @@
     text-align: left;
   }
   
+  /* Plan feature item styling */
   .plan-features li {
     margin-bottom: 8px;
     color: #555;
   }
   
+  /* Buy button styling */
   .buy-button {
     background-color: #1d72b8;
     color: white;
@@ -133,6 +145,7 @@
     width: 100%;
   }
   
+  /* Buy button hover state */
   .buy-button:hover {
     background-color: #145a8d;
   }

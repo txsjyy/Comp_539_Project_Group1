@@ -13,7 +13,10 @@ import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Map;
 
-
+/**
+ * Controller for handling URL shortening and redirection operations.
+ * Provides endpoints for creating, retrieving, and managing short URLs.
+ */
 @RestController
 @RequestMapping("/")
 @CrossOrigin(origins = "*")
@@ -26,7 +29,13 @@ public class UrlShortenerController {
         this.urlShortenerService = urlShortenerService;
     }
 
-    // Shorten URL - Accept JSON Body
+    /**
+     * Creates a shortened URL from a long URL.
+     * Supports both custom and auto-generated short codes.
+     * 
+     * @param request Contains the long URL, user ID, and optional custom alias
+     * @return ResponseEntity with the created ShortUrl or error response
+     */
     @PostMapping("/shorten")
     public ResponseEntity<ShortUrl> shortenUrl(@RequestBody ShortUrl request) {
         if (request.getLongUrl() == null || request.getUserId() == null) {
@@ -65,8 +74,14 @@ public class UrlShortenerController {
         }
     }
 
-
-
+    /**
+     * Redirects a short URL to its original long URL.
+     * Records click statistics and handles URL expiration.
+     * 
+     * @param shortCode The short code to redirect
+     * @param request HTTP request for recording click data
+     * @return ResponseEntity with redirect or error message
+     */
     @GetMapping("/{shortCode}")
     public ResponseEntity<?> redirectToLongUrl(@PathVariable String shortCode, HttpServletRequest request) {
         ShortUrl url = urlShortenerService.getShortUrl(shortCode);
@@ -107,19 +122,36 @@ public class UrlShortenerController {
                 .build();
     }
 
+    /**
+     * Searches for short URLs based on a query string.
+     * 
+     * @param query Search term to filter URLs
+     * @return ResponseEntity with list of matching ShortUrlDto objects
+     */
     @GetMapping("/search")
     public ResponseEntity<List<ShortUrlDto>> searchShortUrls(@RequestParam String query) {
         List<ShortUrlDto> result = urlShortenerService.getShortUrlsWithClickCounts(query);
         return ResponseEntity.ok(result);
     }
 
-    // Delete Shortened URL
+    /**
+     * Deletes a short URL by its code.
+     * 
+     * @param shortCode The short code to delete
+     * @return ResponseEntity with success message
+     */
     @DeleteMapping("/{shortCode}")
     public ResponseEntity<String> deleteShortUrl(@PathVariable String shortCode) {
         urlShortenerService.deleteShortUrl(shortCode);
         return ResponseEntity.ok("Short URL deleted successfully.");
     }
 
+    /**
+     * Retrieves detailed click analytics for a short URL.
+     * 
+     * @param body Contains the short code to analyze
+     * @return ResponseEntity with list of click details
+     */
     @PostMapping("/analytics/details")
     public ResponseEntity<List<Map<String, String>>> getClickDetails(@RequestBody Map<String, String> body) {
         String shortCode = body.get("shortCode");
@@ -131,6 +163,13 @@ public class UrlShortenerController {
         List<Map<String, String>> details = urlShortenerService.getClickDetails(shortCode);
         return ResponseEntity.ok(details);
     }
+
+    /**
+     * Updates an existing short code to a new value.
+     * 
+     * @param body Contains old and new short codes
+     * @return ResponseEntity with success or error message
+     */
     @PutMapping("/update-shortcode")
     public ResponseEntity<String> updateShortCode(@RequestBody Map<String, String> body) {
         String oldCode = body.get("oldCode");
@@ -147,6 +186,4 @@ public class UrlShortenerController {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
-    
-
 }

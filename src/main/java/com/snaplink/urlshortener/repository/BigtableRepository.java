@@ -18,6 +18,10 @@ import java.time.format.DateTimeFormatter;
 import java.util.Map;
 import java.util.HashMap;
 
+/**
+ * Repository for handling data operations with Google Cloud Bigtable.
+ * Manages user profiles, URL tracking, and analytics data.
+ */
 @Repository
 public class BigtableRepository {
 
@@ -37,9 +41,9 @@ public class BigtableRepository {
         RowMutation mutation = RowMutation.create("user_profiles", "user#" + user.getId())
                 .setCell("personal", "username", user.getUsername())
                 .setCell("personal", "email", user.getEmail())
-                .setCell("security", "password", user.getPassword()) // 移动到security列族
+                .setCell("security", "password", user.getPassword())
                 .setCell("subscription", "plan", user.getSubscriptionPlan())
-                .setCell("metadata", "created_at", user.getCreatedAt().toString()); // 添加创建时间
+                .setCell("metadata", "created_at", user.getCreatedAt().toString());
         client.mutateRow(mutation);
     }
 
@@ -49,28 +53,25 @@ public class BigtableRepository {
             String[] keyParts = row.getKey().toStringUtf8().split("#");
             String id = keyParts.length > 1 ? keyParts[1] : "";
             
-            // 解析时间戳
+            // Parse timestamp
             String createdAtStr = getCellValue(row, "metadata", "created_at");
             LocalDateTime createdAt = null;
             if (createdAtStr != null && !createdAtStr.isEmpty()) {
                 createdAt = LocalDateTime.parse(createdAtStr, DateTimeFormatter.ISO_LOCAL_DATE_TIME);
             }
-            // optional reset‐token columns
-            String token     = getCellValue(row, "security",     "reset_token");
-            String expiryStr = getCellValue(row, "security",     "reset_token_expiry");
-            LocalDateTime createdAtDt = createdAt == null ? null 
-                : createdAt;
-            LocalDateTime expiryDt    = expiryStr == null  ? null
-                : LocalDateTime.parse(expiryStr, ISO_FMT);
 
-            // 使用完整构造函数
+            String token = getCellValue(row, "security", "reset_token");
+            String expiryStr = getCellValue(row, "security", "reset_token_expiry");
+            LocalDateTime createdAtDt = createdAt == null ? null : createdAt;
+            LocalDateTime expiryDt = expiryStr == null ? null : LocalDateTime.parse(expiryStr, ISO_FMT);
+
             User user = new User(
                 id,
                 getCellValue(row, "personal", "username"),
                 getCellValue(row, "personal", "email"),
                 getCellValue(row, "security", "password"),
                 getCellValue(row, "subscription", "plan"),
-                createdAt  // 作为第6个参数
+                createdAt
             );
             user.setResetToken(token);
             user.setResetTokenExpiry(expiryDt);
@@ -96,11 +97,11 @@ public class BigtableRepository {
 
         client.mutateRow(mut);
     }
+
     public void deleteUserByRowKey(String email) {
         String rowKey = "user#" + email;
         client.mutateRow(RowMutation.create("user_profiles", rowKey).deleteRow());
     }
-
 
     public Optional<User> findByEmail(String email) {
         List<User> users = getUsers();
@@ -117,17 +118,20 @@ public class BigtableRepository {
     public boolean existsByEmail(String email) {
         return findByEmail(email).isPresent();
     }
-    // 新增辅助方法
+
+    // Helper method to get cell value from a row
     private String getCellValue(Row row, String family, String qualifier) {
         return row.getCells(family, qualifier).isEmpty() ? 
             null : 
             row.getCells(family, qualifier).get(0).getValue().toStringUtf8();
     }
+
     public Optional<User> findByResetToken(String token) {
         return getUsers().stream()
                          .filter(u -> token.equals(u.getResetToken()))
                          .findFirst();
     }
+
     // ---- URL Operations ----
     public void createShortUrl(ShortUrl url) {
         RowMutation mutation = RowMutation.create("url_tracking", "url#" + url.getShortCode())
@@ -154,12 +158,8 @@ public class BigtableRepository {
     public List<ShortUrl> getAllUrlsByUserId(String userId) {
         List<ShortUrl> shortUrls = new ArrayList<>();
 
-        // 1) Read ALL rows from the "url_tracking" table (no filters)
         client.readRows(Query.create("url_tracking")).forEach(row -> {
-            // 2) Convert each row into a ShortUrl object
             ShortUrl shortUrl = mapRowToShortUrl(row);
-
-            // 3) Check if the ShortUrl's userId matches
             if (shortUrl.getUserId().equals(userId)) {
                 shortUrls.add(shortUrl);
             }
@@ -173,8 +173,8 @@ public class BigtableRepository {
         return (row != null);
     }
 
+    // Helper method to map Bigtable row to ShortUrl object
     private ShortUrl mapRowToShortUrl(Row row) {
-        // Row key: "url#<shortCode>"
         String shortCode = row.getKey().toStringUtf8().split("#")[1];
 
         String longUrl = row.getCells("url_info", "long_url").get(0).getValue().toStringUtf8();
@@ -184,7 +184,7 @@ public class BigtableRepository {
         boolean oneTime = Boolean.parseBoolean(row.getCells("url_info", "one_time").get(0).getValue().toStringUtf8());
         boolean isActive = Boolean.parseBoolean(row.getCells("url_info", "is_active").get(0).getValue().toStringUtf8());
 
-        return new ShortUrl(shortCode, longUrl, userId, creationDate, expirationDate, oneTime, isActive,shortCode);
+        return new ShortUrl(shortCode, longUrl, userId, creationDate, expirationDate, oneTime, isActive, shortCode);
     }
 
     // ---- URL Analytics ----
@@ -206,7 +206,7 @@ public class BigtableRepository {
     }
 
     public void recordClick(String shortCode, String ipAddress, String referrer, String geoLocation, String userAgent) {
-        String timestamp = LocalDateTime.now().toString(); // e.g., 2025-03-25T20:45:00
+        String timestamp = LocalDateTime.now().toString();
         String rowKey = "click#" + shortCode + "#" + timestamp;
 
         RowMutation mutation = RowMutation.create("url_analytics", rowKey)
@@ -232,11 +232,11 @@ public class BigtableRepository {
         });
         return matches;
     }
+
     public int getClickCount(String shortCode) {
-        int[] count = {0}; // Use array to mutate inside lambda
+        int[] count = {0};
         client.readRows(Query.create("url_analytics").prefix("click#" + shortCode + "#"))
                 .forEach(row -> count[0]++);
         return count[0];
     }
-
 }

@@ -1,11 +1,10 @@
-<!-- Statistics view component for displaying URL analytics -->
 <template>
   <div class="statistics-container">
     <router-link to="/myurls" class="back-button">
       <span class="arrow">←</span> Back
     </router-link>
 
-    <h1>Short URL Statistics: https://snaplink.txsjyy.net/{{ shortCode }}</h1>
+    <h1>Short URL Statistics: https://sho.rt/{{ shortCode }}</h1>
 
     <div v-if="analyticsData.length">
       <h3>Total Clicks: {{ analyticsData.length }}</h3>
@@ -56,7 +55,6 @@ import { ref, onMounted, nextTick, computed } from 'vue';
 import { useRoute } from 'vue-router';
 import Chart from 'chart.js/auto';
 
-// Interface for analytics data structure
 interface AnalyticsEntry {
   referrer: string;
   geo_location: string;
@@ -68,26 +66,23 @@ interface AnalyticsEntry {
 const route = useRoute();
 const shortCode = route.params.id as string;
 
-// State management
 const analyticsData = ref<AnalyticsEntry[]>([]);
 const chartCanvas2 = ref<HTMLCanvasElement | null>(null);
 let chart2: Chart | null = null;
-const selectedRange = ref(3); // -3 ~ +3 days range
+
+const selectedRange = ref(3); // -3 ~ +3
 
 const API = 'https://snaplink-dot-rice-comp-539-spring-2022.uk.r.appspot.com';
 
-// Format timestamp to local string
 const formatTimestamp = (timestamp: string) => {
   return new Date(timestamp).toLocaleString();
 };
 
-// Calculate unique visitors based on IP addresses
 const uniqueVisitors = computed(() => {
   const uniqueIps = new Set(analyticsData.value.map(entry => entry.ip_address));
   return uniqueIps.size;
 });
 
-// Fetch analytics data from API
 const fetchAnalytics = async () => {
   try {
     const response = await fetch(`${API}/analytics/details`, {
@@ -107,12 +102,10 @@ const fetchAnalytics = async () => {
   }
 };
 
-// Render click timeline chart using Chart.js
 const renderClickTimelineChart = (data: AnalyticsEntry[]) => {
   if (!chartCanvas2.value || !data.length) return;
   if (chart2) chart2.destroy();
 
-  // Calculate click counts per day
   const dateCounts: Record<string, number> = {};
   const dateList = data.map(entry => {
     const dateStr = new Date(entry.timestamp).toISOString().split('T')[0];
@@ -120,11 +113,9 @@ const renderClickTimelineChart = (data: AnalyticsEntry[]) => {
     return dateStr;
   });
 
-  // Find the date with most clicks
   const centralDateStr = Object.entries(dateCounts).sort((a, b) => b[1] - a[1])[0][0];
   const centralDate = new Date(centralDateStr);
 
-  // Generate labels and initialize click counts
   const labels: string[] = [];
   const clicksPerDay: Record<string, number> = {};
 
@@ -136,7 +127,6 @@ const renderClickTimelineChart = (data: AnalyticsEntry[]) => {
     clicksPerDay[label] = 0;
   }
 
-  // Count clicks for each day
   data.forEach(entry => {
     const day = new Date(entry.timestamp).toISOString().split('T')[0];
     if (clicksPerDay[day] !== undefined) {
@@ -144,7 +134,6 @@ const renderClickTimelineChart = (data: AnalyticsEntry[]) => {
     }
   });
 
-  // Create chart instance
   chart2 = new Chart(chartCanvas2.value, {
     type: 'line',
     data: {
@@ -168,14 +157,12 @@ const renderClickTimelineChart = (data: AnalyticsEntry[]) => {
   });
 };
 
-// Update chart when date range changes
 const updateChart = () => {
   if (analyticsData.value.length > 0) {
     renderClickTimelineChart(analyticsData.value);
   }
 };
 
-// Download chart as PNG image
 const downloadChart = () => {
   if (chartCanvas2.value) {
     const link = document.createElement('a');
@@ -185,7 +172,6 @@ const downloadChart = () => {
   }
 };
 
-// Initialize component
 onMounted(async () => {
   await fetchAnalytics();
   await nextTick();
@@ -199,14 +185,12 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-/* Statistics container layout */
 .statistics-container {
   max-width: 960px;
   margin: 40px auto;
   padding: 0 20px;
 }
 
-/* Back button styling */
 .back-button {
   display: inline-block;
   margin-bottom: 20px;
@@ -214,7 +198,6 @@ onMounted(async () => {
   text-decoration: none;
 }
 
-/* Chart controls layout */
 .controls {
   display: flex;
   align-items: center;
@@ -222,14 +205,12 @@ onMounted(async () => {
   margin-bottom: 20px;
 }
 
-/* Analytics table styling */
 .analytics-table {
   width: 100%;
   border-collapse: collapse;
   margin-top: 40px;
 }
 
-/* Table cell styling */
 .analytics-table th,
 .analytics-table td {
   border: 1px solid #ddd;
@@ -237,7 +218,6 @@ onMounted(async () => {
   text-align: center;
 }
 
-/* Table header styling */
 .analytics-table th {
   background-color: #f4f4f4;
 }

@@ -1,4 +1,4 @@
-<!-- src/views/ResetPassword.vue -->
+<!-- Password reset view component -->
 <template>
   <div class="auth-container">
     <div class="auth-card">
@@ -53,11 +53,13 @@ const router = useRouter();
 const route = useRoute();
 const token = route.params.token as string;
 
+// Form state management
 const password = ref('');
 const confirmPassword = ref('');
 const isLoading = ref(false);
 const errorMessage = ref('');
 
+// Handle password reset submission
 const handleResetPassword = async () => {
   // Clear old error message
   errorMessage.value = '';
@@ -99,6 +101,7 @@ const handleResetPassword = async () => {
 </script>
 
 <style scoped>
+/* Authentication container layout */
 .auth-container {
   display: flex;
   justify-content: center;
@@ -108,6 +111,7 @@ const handleResetPassword = async () => {
   padding: 2rem;
 }
 
+/* Authentication card styling */
 .auth-card {
   background: white;
   width: 100%;
@@ -117,6 +121,7 @@ const handleResetPassword = async () => {
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
+/* Logo text styling */
 .logo-text {
   text-align: center;
   color: #1d72b8;
@@ -124,6 +129,7 @@ const handleResetPassword = async () => {
   margin-bottom: 0.5rem;
 }
 
+/* Authentication title styling */
 .auth-title {
   text-align: center;
   font-size: 1.5rem;
@@ -131,10 +137,12 @@ const handleResetPassword = async () => {
   margin-bottom: 2rem;
 }
 
+/* Form group styling */
 .form-group {
   margin-bottom: 1.5rem;
 }
 
+/* Form label styling */
 .form-group label {
   display: block;
   color: #4a5568;
@@ -142,6 +150,7 @@ const handleResetPassword = async () => {
   font-size: 0.9rem;
 }
 
+/* Form input field styling */
 .form-input {
   width: 100%;
   padding: 0.75rem;
@@ -151,11 +160,13 @@ const handleResetPassword = async () => {
   transition: border-color 0.3s;
 }
 
+/* Form input focus state */
 .form-input:focus {
   border-color: #1d72b8;
   outline: none;
 }
 
+/* Authentication button base styling */
 .auth-button {
   width: 100%;
   padding: 0.75rem;
@@ -167,21 +178,25 @@ const handleResetPassword = async () => {
   transition: all 0.3s;
 }
 
+/* Primary button styling */
 .auth-button.primary {
   background-color: #1d72b8;
   color: white;
 }
 
+/* Primary button hover state */
 .auth-button.primary:hover:not(:disabled) {
   background-color: #145a8d;
   transform: translateY(-1px);
 }
 
+/* Disabled button styling */
 .auth-button.primary:disabled {
   background-color: #93c5fd;
   cursor: not-allowed;
 }
 
+/* Error message styling */
 .error-message {
   color: #dc2626;
   text-align: center;
@@ -189,6 +204,7 @@ const handleResetPassword = async () => {
   font-size: 0.9rem;
 }
 
+/* Authentication link styling */
 .auth-link {
   display: block;
   text-align: center;
@@ -198,6 +214,7 @@ const handleResetPassword = async () => {
   margin-top: 1.5rem;
 }
 
+/* Authentication link hover state */
 .auth-link:hover {
   text-decoration: underline;
 }

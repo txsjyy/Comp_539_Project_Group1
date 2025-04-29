@@ -14,6 +14,10 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+/**
+ * Service for managing URL shortening operations.
+ * Handles creation, retrieval, and analytics of shortened URLs.
+ */
 @Service
 public class UrlShortenerService {
 
@@ -31,32 +35,27 @@ public class UrlShortenerService {
 
     // Create Short URL
     public ShortUrl createShortUrl(String longUrl, String userId, boolean oneTime, String expirationDate) {
-        // Generate a short code for the long URL
         String shortCode = generateShortCode(longUrl);
         return createShortUrlWithCode(shortCode, longUrl, userId, oneTime, expirationDate);
     }
 
     // Create Short URL (custom code)
     public ShortUrl createCustomShortUrl(String customShortCode, String longUrl, String userId, boolean oneTime, String expirationDate) {
-        // Check if the custom short code already exists
         if (bigtableRepository.existsByShortCode(customShortCode)) {
             throw new IllegalArgumentException("Short code '" + customShortCode + "' is already in use.");
         }
-        // If not, create the Short URL with that code
         return createShortUrlWithCode(customShortCode, longUrl, userId, oneTime, expirationDate);
     }
 
     // Helper method to create and persist a ShortUrl object given a short code.
     private ShortUrl createShortUrlWithCode(String shortCode, String longUrl, String userId, boolean oneTime, String expirationDate) {
         String creationDate = Instant.now().toString();
-
-        // Ensure expirationDate is not null
         String finalExpirationDate = (expirationDate != null && !expirationDate.isEmpty())
                 ? expirationDate
                 : "2030-01-01T00:00:00Z";  // Default expiration date if not provided
 
         // Create the ShortUrl object
-        ShortUrl url = new ShortUrl(shortCode, longUrl, userId, creationDate, finalExpirationDate, oneTime, true,shortCode);
+        ShortUrl url = new ShortUrl(shortCode, longUrl, userId, creationDate, finalExpirationDate, oneTime, true, shortCode);
 
         // Save to Bigtable
         bigtableRepository.createShortUrl(url);
@@ -77,18 +76,18 @@ public class UrlShortenerService {
     public List<ShortUrl> getAllUrlsByUser(String userId) {
         return bigtableRepository.getAllUrlsByUserId(userId).stream()
         .sorted((a, b) -> b.getCreationDate().compareTo(a.getCreationDate()))
-        .toList();
+        .collect(Collectors.toList());
     }
 
     // Retrieve all short URLs for a specific user by query (Sorted by creationDate descending)
     public List<ShortUrl> searchShortUrls(String query) {
         return bigtableRepository.searchShortUrls(query).stream()
         .sorted((a, b) -> b.getCreationDate().compareTo(a.getCreationDate()))
-        .toList();
+        .collect(Collectors.toList());
     }
-    public List<ShortUrlDto> getShortUrlsWithClickCounts(String userId) {
-        List<ShortUrl> shortUrls = getAllUrlsByUser(userId);  // your existing logic
 
+    public List<ShortUrlDto> getShortUrlsWithClickCounts(String userId) {
+        List<ShortUrl> shortUrls = getAllUrlsByUser(userId);
         return shortUrls.stream()
                 .map(url -> {
                     int clicks = bigtableRepository.getClickCount(url.getShortCode());
@@ -97,12 +96,11 @@ public class UrlShortenerService {
                 .collect(Collectors.toList());
     }
 
-
-
     // Check if a short code already exists
     public boolean shortCodeExists(String shortCode) {
         return bigtableRepository.existsByShortCode(shortCode);
     }
+
     public List<Map<String, String>> getClickDetails(String shortCode) {
         return bigtableRepository.getClickDetails(shortCode);
     }
@@ -111,12 +109,15 @@ public class UrlShortenerService {
         String ipAddress = extractClientIp(request);
         String userAgent = Optional.ofNullable(request.getHeader("User-Agent")).orElse("Unknown");
         String referrer = Optional.ofNullable(request.getHeader("Referer")).orElse("Direct");
-        LocalDateTime timestamp = LocalDateTime.now();
-        String geoLocation = ""; // TODO: Use GeoIP service like MaxMind or ip-api.com
-
+        String geoLocation = ""; // TODO: Implement GeoIP service
 
         bigtableRepository.recordClick(shortCode, ipAddress, referrer, geoLocation, userAgent);
     }
+
+    /**
+     * Extracts client IP address from request headers.
+     * Checks various proxy headers before falling back to remote address.
+     */
     public String extractClientIp(HttpServletRequest request) {
         String[] headerNames = {
                 "CF-Connecting-IP", // Cloudflare

@@ -2,20 +2,20 @@
   <div class="container">
     <h1 class="title">My Shortened URLs</h1>
 
-    <!-- 错误提示 -->
+    <!-- Error message display -->
     <div v-if="error" class="error-message">
       {{ error }}
     </div>
 
-    <!-- 搜索框 -->
+    <!-- Search input -->
     <input v-model="searchQuery" class="search-input" placeholder="Search URLs..." />
 
-    <!-- 加载状态 -->
+    <!-- Loading state -->
     <div v-if="isLoading" class="loading">
       Loading...
     </div>
 
-    <!-- 数据表格 -->
+    <!-- Data table -->
     <div v-else class="table-container">
       <table class="table">
         <thead>
@@ -36,18 +36,17 @@
             <td class="td td-left">{{ url.originalUrl }}</td>
             <td class="td">{{ url.clickCount }}</td>
             <td class="td">
-              <!-- 复制按钮，同时传入事件对象获取鼠标位置 -->
+              <!-- Copy button with event object for mouse position -->
               <button @click="copyUrl(url.shortUrl, $event)" class="button">Copy</button>
               <button @click="triggerEdit(url)" class="edit-button">Edit</button>
               <button @click="showStatistics(url)" class="statistics-button">Statistics</button>
-
             </td>
           </tr>
         </tbody>
       </table>
     </div>
 
-    <!-- 分页控件 -->
+    <!-- Pagination controls -->
     <div class="pagination">
       <button @click="prevPage" :disabled="currentPage === 1" class="page-button">← Prev</button>
       <span class="page-info">Page {{ currentPage }} of {{ totalPages }}</span>
@@ -55,7 +54,7 @@
     </div>
   </div>
 
-  <!-- 编辑弹窗，只允许修改 Short URL -->
+  <!-- Edit modal, only allows Short URL modification -->
   <div v-if="isEditing" class="modal-overlay">
     <div class="modal">
       <h2>Edit Short URL</h2>
@@ -70,7 +69,7 @@
     </div>
   </div>
 
-  <!-- 复制提示，根据鼠标点击位置显示 -->
+  <!-- Copy toast notification, positioned based on mouse click -->
   <div
     v-if="copySuccess"
     class="copy-toast"
@@ -85,7 +84,7 @@ import { ref, computed, onMounted } from "vue";
 import { useRouter } from 'vue-router'
 import { useUserStore } from '../stores/user'
 
-// URL接口定义
+// Interface definition for URL object
 interface URL {
   id: string;
   shortUrl: string;
@@ -96,11 +95,12 @@ interface URL {
 const router = useRouter()
 const userStore = useUserStore()
 
-// 数据状态
+// Data state management
 const urls = ref<URL[]>([]);
 const isLoading = ref(false);
 const error = ref('');
 
+// Fetch user's URLs from the API
 const fetchUserUrls = async () => {
   const storedUser = localStorage.getItem('user') || sessionStorage.getItem('user');
   if (!storedUser) {
@@ -138,21 +138,17 @@ const fetchUserUrls = async () => {
   }
 };
 
+// Fetch data when component is mounted
 onMounted(() => {
   fetchUserUrls();
 });
 
-
-// 组件挂载时获取数据
-onMounted(() => {
-  fetchUserUrls();
-});
-
+// Search and pagination state
 const searchQuery = ref("");
 const currentPage = ref(1);
 const itemsPerPage = 10;
 
-// 过滤搜索结果
+// Filter URLs based on search query
 const filteredUrls = computed(() =>
   urls.value.filter(
     (url) =>
@@ -161,12 +157,13 @@ const filteredUrls = computed(() =>
   )
 );
 
-// 计算分页数据
+// Calculate pagination data
 const totalPages = computed(() => Math.ceil(filteredUrls.value.length / itemsPerPage));
 const paginatedUrls = computed(() =>
   filteredUrls.value.slice((currentPage.value - 1) * itemsPerPage, currentPage.value * itemsPerPage)
 );
 
+// Pagination navigation
 const nextPage = () => {
   if (currentPage.value < totalPages.value) currentPage.value++;
 };
@@ -175,14 +172,14 @@ const prevPage = () => {
   if (currentPage.value > 1) currentPage.value--;
 };
 
-// 复制提示状态与位置
+// Copy functionality state
 const copySuccess = ref(false);
 const copyPosition = ref({ top: "0px", left: "0px" });
 
-// 复制功能：传入事件对象获取鼠标位置，显示提示后2秒自动隐藏
+// Copy URL to clipboard and show toast notification
 const copyUrl = (url: string, event: MouseEvent) => {
   navigator.clipboard.writeText(url).then(() => {
-    // 设置提示位置，加上偏移量避免遮挡鼠标
+    // Set toast position with offset to avoid mouse cursor
     copyPosition.value = {
       top: event.clientY + 10 + "px",
       left: event.clientX + 10 + "px",
@@ -194,62 +191,27 @@ const copyUrl = (url: string, event: MouseEvent) => {
   });
 };
 
-
-// 编辑相关状态
+// Edit functionality state
 const isEditing = ref(false);
 const editingUrl = ref<{ id: string; shortUrl: string; originalUrl: string; clickCount: number } | null>(null);
 
-// 点击编辑时弹出编辑弹窗，仅允许修改 Short URL
+// Trigger edit modal with URL data
 const triggerEdit = (url: { id: string; shortUrl: string; originalUrl: string; clickCount: number }) => {
-  // 创建副本，避免直接修改原数据
+  // Create a copy to avoid direct modification of original data
   editingUrl.value = { ...url };
   isEditing.value = true;
 };
 
-// 保存编辑内容，只更新 Short URL
-// const saveEdit = async () => {
-//   if (!editingUrl.value) return;
-
-//   try {
-//     const API = import.meta.env.VITE_API_BASE_URL;
-//     const response = await fetch(`${API}/api/urls/${editingUrl.value.id}`, {
-//       method: 'PUT',
-//       headers: {
-//         'Content-Type': 'application/json',
-//         'Authorization': `Bearer ${localStorage.getItem('accessToken') || sessionStorage.getItem('accessToken')}`
-//       },
-//       body: JSON.stringify({
-//         shortUrl: editingUrl.value.shortUrl
-//       })
-//     });
-
-//     if (!response.ok) {
-//       throw new Error('Update failed');
-//     }
-
-//     // 更新本地数据
-//     const index = urls.value.findIndex((u) => u.id === editingUrl.value!.id);
-//     if (index !== -1) {
-//       urls.value[index].shortUrl = editingUrl.value.shortUrl;
-//     }
-
-//     isEditing.value = false;
-//     editingUrl.value = null;
-//   } catch (err) {
-//     console.error('Failed to update URL:', err);
-//     error.value = 'Update failed. Please try again later.';
-//   }
-// };
-
+// Save edited URL changes
 const saveEdit = async () => {
   if (!editingUrl.value) return;
   const extractShortCode = (fullUrl: string) => {
-  try {
-    return fullUrl.split('/').pop() || '';
-  } catch {
-    return '';
-  }
-};
+    try {
+      return fullUrl.split('/').pop() || '';
+    } catch {
+      return '';
+    }
+  };
   const oldCode = extractShortCode(editingUrl.value.id);  // ensure it's just the code
   const newCode = editingUrl.value.shortUrl.trim();
 
@@ -285,13 +247,13 @@ const saveEdit = async () => {
   }
 };
 
-// 取消编辑
+// Cancel edit
 const cancelEdit = () => {
   isEditing.value = false;
   editingUrl.value = null;
 };
 
-// 显示统计页面
+// Show statistics page
 const showStatistics = (url: { id: string }) => {
   router.push({ name: 'statistics', params: { id: url.id } })
 };
@@ -299,7 +261,7 @@ const showStatistics = (url: { id: string }) => {
 </script>
 
 <style scoped>
-/* 页面整体样式 */
+/* Page overall style */
 .container {
   padding: 40px;
   width: 100%;
@@ -310,7 +272,7 @@ const showStatistics = (url: { id: string }) => {
   align-items: center;
 }
 
-/* 标题样式 */
+/* Title style */
 .title {
   font-size: 42px;
   font-weight: bold;
@@ -318,7 +280,7 @@ const showStatistics = (url: { id: string }) => {
   color: #2c3e50;
 }
 
-/* 搜索框 */
+/* Search input */
 .search-input {
   width: 60%;
   padding: 12px;
@@ -333,7 +295,7 @@ const showStatistics = (url: { id: string }) => {
   border-color: #3498db;
 }
 
-/* 表格外层容器 */
+/* Table outer container */
 .table-container {
   overflow-x: auto;
   width: 90%;
@@ -344,14 +306,14 @@ const showStatistics = (url: { id: string }) => {
   box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
 }
 
-/* 表格样式 */
+/* Table style */
 .table {
   width: 100%;
   border-collapse: collapse;
   font-size: 20px;
 }
 
-/* 表头样式 */
+/* Table header style */
 .th {
   background-color: #2c3e50;
   color: white;
@@ -360,20 +322,20 @@ const showStatistics = (url: { id: string }) => {
   font-weight: 600;
 }
 
-/* 表格行样式 */
+/* Table row style */
 .tr:hover {
   background-color: #ecf0f1;
   transition: 0.3s;
 }
 
-/* 单元格样式 */
+/* Table cell style */
 .td {
   border: 1px solid #ddd;
   padding: 16px;
   text-align: center;
 }
 
-/* 左对齐的单元格 */
+/* Left aligned cell */
 .td-left {
   text-align: left;
   max-width: 300px;
@@ -382,7 +344,7 @@ const showStatistics = (url: { id: string }) => {
   text-overflow: ellipsis;
 }
 
-/* 超链接样式 */
+/* Link style */
 .link {
   color: #2980b9;
   font-weight: 600;
@@ -392,7 +354,7 @@ const showStatistics = (url: { id: string }) => {
   text-decoration: underline;
 }
 
-/* 按钮样式 */
+/* Button style */
 .button,
 .edit-button,
 .statistics-button {
@@ -421,7 +383,7 @@ const showStatistics = (url: { id: string }) => {
   background-color: #7f8c8d;
 }
 
-/* 统计按钮样式 */
+/* Statistics button style */
 .statistics-button {
   background-color: #27ae60;
 }
@@ -429,7 +391,7 @@ const showStatistics = (url: { id: string }) => {
   background-color: #1e8449;
 }
 
-/* 分页控件 */
+/* Pagination controls */
 .pagination {
   margin-top: 20px;
   display: flex;
@@ -459,7 +421,7 @@ const showStatistics = (url: { id: string }) => {
   color: #2c3e50;
 }
 
-/* 编辑弹窗样式 */
+/* Edit modal style */
 .modal-overlay {
   position: fixed;
   top: 0;
@@ -511,7 +473,7 @@ const showStatistics = (url: { id: string }) => {
   gap: 10px;
 }
 
-/* 复制提示样式，根据鼠标点击位置显示 */
+/* Copy toast style, positioned based on mouse click */
 .copy-toast {
   position: fixed;
   background-color: rgba(0, 0, 0, 0.8);
@@ -522,7 +484,7 @@ const showStatistics = (url: { id: string }) => {
   pointer-events: none;
 }
 
-/* 错误提示样式 */
+/* Error message style */
 .error-message {
   background-color: #fee2e2;
   color: #dc2626;
@@ -533,7 +495,7 @@ const showStatistics = (url: { id: string }) => {
   text-align: center;
 }
 
-/* 加载状态样式 */
+/* Loading state style */
 .loading {
   text-align: center;
   padding: 2rem;

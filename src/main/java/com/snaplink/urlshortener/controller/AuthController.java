@@ -22,10 +22,13 @@ import java.util.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * Controller for handling user authentication and account management.
+ * Provides endpoints for user registration, login, password reset, and account deletion.
+ */
 @RestController
 @RequestMapping("/api/auth")
 @CrossOrigin(origins = "*")
-// Removed misplaced @Autowired annotation
 public class AuthController {
     private static final Logger logger = LoggerFactory.getLogger(AuthController.class);
 
@@ -48,9 +51,14 @@ public class AuthController {
         this.emailService = emailService;
     }
 
+    /**
+     * Registers a new user account.
+     * 
+     * @param request User registration details
+     * @return ResponseEntity with success message or error
+     */
     @PostMapping("/signup")
     public ResponseEntity<?> signup(@Valid @RequestBody AuthRequest.SignUp request) {
-        // 检查用户名/邮箱是否已存在
         // Check if username exists
         if (repository.existsByUsername(request.getUsername())) {
             return ResponseEntity.status(HttpStatus.CONFLICT)
@@ -69,7 +77,7 @@ public class AuthController {
                     .body(Map.of("message", "Passwords do not match"));
         }
 
-        // 创建用户对象
+        // Create user object
         User user = new User(
             request.getUsername(),
             request.getUsername(),
@@ -79,50 +87,54 @@ public class AuthController {
             LocalDateTime.now()
         );
 
-        // 存储到Bigtable
+        // Save to Bigtable
         repository.createUser(user);
 
-        // ← fire off your welcome email
+        // Send welcome email
         try {
             emailService.sendWelcomeEmail(user.getEmail(), user.getUsername());
         } catch (Exception ex) {
-            // log but don’t block signup
             logger.warn("Failed to send welcome email to {}", user.getEmail(), ex);
         }
 
         return ResponseEntity.status(HttpStatus.CREATED)
                             .body(userResponse(user));
-        }
+    }
 
+    /**
+     * Authenticates a user and generates a JWT token.
+     * 
+     * @param request User credentials (email and password)
+     * @return ResponseEntity with JWT token or error message
+     */
     @PostMapping("/login")
-        public ResponseEntity<?> login(@Valid @RequestBody AuthRequest.Login request) {
-            try {
-                // 手动查询用户
-                User user = repository.findByEmail(request.getEmail())
-                    .orElseThrow(() -> new BadCredentialsException("用户不存在"));
-                    
-                // 手动验证密码
-                boolean isPasswordMatch = encoder.matches(request.getPassword(), user.getPassword());
+    public ResponseEntity<?> login(@Valid @RequestBody AuthRequest.Login request) {
+        try {
+            // Query user manually
+            User user = repository.findByEmail(request.getEmail())
+                .orElseThrow(() -> new BadCredentialsException("User not found"));
+                
+            // Verify password manually
+            boolean isPasswordMatch = encoder.matches(request.getPassword(), user.getPassword());
 
-                if (!isPasswordMatch) {
-                    throw new BadCredentialsException("密码错误");
-                }
-        
-//                // 生成认证令牌（可选）
-//                Authentication auth = new UsernamePasswordAuthenticationToken(
-//                    user.getEmail(),
-//                    null,
-//                    Collections.emptyList()
-//                );
-//                SecurityContextHolder.getContext().setAuthentication(auth);
-        
-                return ResponseEntity.ok(authResponse(user));
-            } catch (BadCredentialsException e) {
-                return ResponseEntity.status(401).body(Map.of("error", e.getMessage()));
+            if (!isPasswordMatch) {
+                throw new BadCredentialsException("Invalid password");
             }
+    
+            return ResponseEntity.ok(authResponse(user));
+        } catch (BadCredentialsException e) {
+            return ResponseEntity.status(401).body(Map.of("error", e.getMessage()));
         }
+    }
 
-@PostMapping("/forgot-password")
+    /**
+     * Initiates the password reset process by sending a reset email.
+     * 
+     * @param body Contains the user's email address
+     * @param request HttpServletRequest
+     * @return ResponseEntity with success message
+     */
+    @PostMapping("/forgot-password")
     public ResponseEntity<?> forgotPassword(
             @RequestBody Map<String,String> body,
             HttpServletRequest request
@@ -142,12 +154,11 @@ public class AuthController {
 
         String resetLink = "https://snaplink.com/reset-password?token=" + token;
 
-        // parse UA header
+        // Parse user agent header
         String ua      = request.getHeader("User-Agent");
         String os      = parseOperatingSystem(ua);
         String browser = parseBrowserName(ua);
 
-        // try sending, but let exceptions bubble up to be caught below
         try {
             emailService.sendPasswordResetEmail(
                 email,
@@ -157,48 +168,52 @@ public class AuthController {
                 browser
             );
         } catch (Exception ignored) {
-            // swallow all errors—no logging
+            // Log silently
         }
 
         return ResponseEntity.ok(
             Map.of("message","If that email is registered, a reset link has been sent.")
         );
     }
-// (same UA parsers as before)
-private String parseOperatingSystem(String ua) {
-    // Example implementation to parse the operating system from the user agent string
-    if (ua == null || ua.isEmpty()) {
-        return "Unknown OS";
+
+    // Helper methods for parsing user agent
+    private String parseOperatingSystem(String ua) {
+        if (ua == null || ua.isEmpty()) {
+            return "Unknown OS";
+        }
+        if (ua.contains("Windows")) {
+            return "Windows";
+        } else if (ua.contains("Mac")) {
+            return "MacOS";
+        } else if (ua.contains("Linux")) {
+            return "Linux";
+        } else {
+            return "Other";
+        }
     }
-    if (ua.contains("Windows")) {
-        return "Windows";
-    } else if (ua.contains("Mac")) {
-        return "MacOS";
-    } else if (ua.contains("Linux")) {
-        return "Linux";
-    } else {
-        return "Other";
+
+    private String parseBrowserName(String ua) {
+        if (ua == null || ua.isEmpty()) {
+            return "Unknown Browser";
+        }
+        if (ua.contains("Chrome")) {
+            return "Chrome";
+        } else if (ua.contains("Firefox")) {
+            return "Firefox";
+        } else if (ua.contains("Safari")) {
+            return "Safari";
+        } else if (ua.contains("Edge")) {
+            return "Edge";
+        } else {
+            return "Other";
+        }
     }
-}
-private String parseBrowserName(String ua) {
-    if (ua == null || ua.isEmpty()) {
-        return "Unknown Browser";
-    }
-    if (ua.contains("Chrome")) {
-        return "Chrome";
-    } else if (ua.contains("Firefox")) {
-        return "Firefox";
-    } else if (ua.contains("Safari")) {
-        return "Safari";
-    } else if (ua.contains("Edge")) {
-        return "Edge";
-    } else {
-        return "Other";
-    }
-}
 
     /**
-     * 2) Validate token & expiry then actually reset the password.
+     * Resets a user's password using a valid reset token.
+     * 
+     * @param req Contains the reset token and new password
+     * @return ResponseEntity with success message or error
      */
     @PostMapping("/reset-password")
     public ResponseEntity<?> resetPassword(@RequestBody ResetPasswordRequest req) {
@@ -222,6 +237,12 @@ private String parseBrowserName(String ua) {
         return ResponseEntity.ok(Map.of("message", "Password has been reset"));
     }
 
+    /**
+     * Deletes a user account and associated data.
+     * 
+     * @param email ID of the user to delete
+     * @return ResponseEntity with success message
+     */
     @DeleteMapping("/delete-user")
     public ResponseEntity<?> deleteUser(@RequestParam String email) {
         if (!repository.existsByEmail(email)) {
@@ -238,7 +259,7 @@ private String parseBrowserName(String ua) {
         }
     }
 
-
+    // Helper methods for response formatting
     private Map<String, Object> userResponse(User user) {
         return Map.of(
             "id", user.getId(),

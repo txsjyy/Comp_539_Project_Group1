@@ -28,7 +28,6 @@ public class UserDetailsImpl implements UserDetails {
         return Collections.emptyList();
     }
 
-    // 账户状态方法（保持默认）
     @Override public boolean isAccountNonExpired() { return true; }
     @Override public boolean isAccountNonLocked() { return true; }
     @Override public boolean isCredentialsNonExpired() { return true; }

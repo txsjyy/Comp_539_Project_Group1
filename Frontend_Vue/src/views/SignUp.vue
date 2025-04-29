@@ -1,4 +1,4 @@
-<!-- src/views/SignUp.vue -->
+<!-- User registration view component -->
 <template>
     <div class="auth-container">
       <div class="auth-card">
@@ -40,7 +40,6 @@
           </div>
           <p v-if="errorMessage" class="error-message">{{ errorMessage }}</p>
 
-
           <button type="submit" class="auth-button primary">
             Sign Up
           </button>
@@ -59,6 +58,7 @@ import { useRouter } from 'vue-router';
 
 const router = useRouter();
 
+// Form state management
 const email = ref('');
 const password = ref('');
 const confirmPassword = ref('');
@@ -66,6 +66,7 @@ const subscriptionPlan = ref('free');
 const isLoading = ref(false);
 const errorMessage = ref('');
 
+// Handle user registration
 const handleSignUp = async () => {
   if (password.value !== confirmPassword.value) {
     errorMessage.value = 'Passwords do not match';
@@ -76,7 +77,6 @@ const handleSignUp = async () => {
     errorMessage.value = 'Please enter a valid email address';
     return;
   }
-
 
   try {
     isLoading.value = true;
@@ -113,52 +113,7 @@ const handleSignUp = async () => {
   }
 };
 
-// const handleSignUp = async () => {
-//   if (password.value !== confirmPassword.value) {
-//     errorMessage.value = 'Passwords do not match';
-//     return;
-//   }
-
-//   if (!isValidEmail(email.value)) {
-//     errorMessage.value = 'Please enter a valid email address';
-//     return;
-//   }
-
-//   try {
-//     isLoading.value = true;
-//     errorMessage.value = '';
-//     const API = import.meta.env.VITE_API_BASE_URL;
-//     const response = await fetch(API+'/api/auth/signup', {
-//       method: 'POST',
-//       headers: {
-//         'Content-Type': 'application/json',
-//       },
-//       body: JSON.stringify({
-//         username: email.value, // 使用邮箱作为username
-//         email: email.value,
-//         password: password.value,
-//         confirmPassword: confirmPassword.value,
-//         subscriptionPlan: subscriptionPlan.value
-//       }),
-//     });
-
-//     const data = await response.json();
-//     console.log(data);
-//     if (!response.ok) {
-//       errorMessage.value= data.message || 'Registration failed'
-//     }
-
-//     alert('Registration successful! Please log in.');
-//     router.push('/login');
-
-//   } catch (error) {
-//     console.error('Registration error:', error);
-//     errorMessage.value = (error as Error).message || 'Registration failed. Please try again.';
-//   } finally {
-//     isLoading.value = false;
-//   }
-// };
-
+// Validate email format
 const isValidEmail = (email: string) => {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 };
@@ -166,6 +121,7 @@ const isValidEmail = (email: string) => {
   </script>
 
   <style scoped>
+  /* Authentication container layout */
   .auth-container {
     display: flex;
     justify-content: center;
@@ -175,6 +131,7 @@ const isValidEmail = (email: string) => {
     padding: 2rem;
   }
 
+  /* Authentication card styling */
   .auth-card {
     background: white;
     width: 100%;
@@ -184,6 +141,7 @@ const isValidEmail = (email: string) => {
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
   }
 
+  /* Logo text styling */
   .logo-text {
     text-align: center;
     color: #1d72b8;
@@ -191,6 +149,7 @@ const isValidEmail = (email: string) => {
     margin-bottom: 0.5rem;
   }
 
+  /* Authentication title styling */
   .auth-title {
     text-align: center;
     font-size: 1.5rem;
@@ -198,10 +157,12 @@ const isValidEmail = (email: string) => {
     margin-bottom: 2rem;
   }
 
+  /* Form group styling */
   .form-group {
     margin-bottom: 1.5rem;
   }
 
+  /* Form label styling */
   .form-group label {
     display: block;
     color: #4a5568;
@@ -209,6 +170,7 @@ const isValidEmail = (email: string) => {
     font-size: 0.9rem;
   }
 
+  /* Form input field styling */
   .form-input {
     width: 100%;
     padding: 0.75rem;
@@ -218,11 +180,13 @@ const isValidEmail = (email: string) => {
     transition: border-color 0.3s;
   }
 
+  /* Form input focus state */
   .form-input:focus {
     border-color: #1d72b8;
     outline: none;
   }
 
+  /* Form options layout */
   .form-options {
     display: flex;
     justify-content: space-between;
@@ -230,6 +194,7 @@ const isValidEmail = (email: string) => {
     margin: 1rem 0;
   }
 
+  /* Remember me checkbox styling */
   .remember-me {
     color: #4a5568;
     font-size: 0.9rem;
@@ -238,12 +203,14 @@ const isValidEmail = (email: string) => {
     gap: 0.5rem;
   }
 
+  /* Forgot password link styling */
   .forgot-password {
     color: #1d72b8;
     font-size: 0.9rem;
     text-decoration: none;
   }
 
+  /* Forgot password link hover state */
   .forgot-password:hover {
     text-decoration: underline;
   }
