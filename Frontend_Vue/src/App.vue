@@ -6,7 +6,7 @@
         <router-link to="/">HOME</router-link>
         <router-link to="/myurls">MyURLs</router-link>
         <router-link to="/plans">Plans</router-link>
-        <router-link to="/login" class="sign-button">
+        <router-link v-if="!userStore.isLoggedIn" to="/login" class="sign-button">
           Sign in
         </router-link>
       </nav>
@@ -18,7 +18,18 @@
     </main>
   </div>
 </template>
+<script setup lang="ts">
+import { useRouter } from 'vue-router';
+import { useUserStore } from './stores/user';
 
+const router = useRouter();
+const userStore = useUserStore();
+
+const logout = () => {
+  userStore.logout();
+  router.push('/login');
+};
+</script>
 <style>
 /* 让整个页面填充满屏幕 */
 html, body {

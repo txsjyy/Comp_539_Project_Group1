@@ -259,6 +259,9 @@ const saveEdit = async () => {
     const API = import.meta.env.VITE_API_BASE_URL;
     const response = await fetch(`${API}/update-shortcode`, {
       method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',  // <-- explicitly set this header
+      },
       body: JSON.stringify({ oldCode, newCode })
     });
 
