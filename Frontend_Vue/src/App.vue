@@ -1,6 +1,6 @@
 <template>
   <div class="container">
-    <!-- 100% 宽度的导航栏 -->
+    <!-- Navigation bar with 100% width -->
     <header class="navbar">
       <nav>
         <router-link to="/">HOME</router-link>
@@ -12,7 +12,7 @@
       </nav>
     </header>
 
-    <!-- 页面主要内容 -->
+    <!-- Main content -->
     <main class="content">
       <router-view></router-view>
     </main>
@@ -31,7 +31,7 @@ const logout = () => {
 };
 </script>
 <style>
-/* 让整个页面填充满屏幕 */
+/* Make the entire page fill the screen */
 html, body {
   margin: 0;
   padding: 0;
@@ -39,7 +39,7 @@ html, body {
   height: 100%;
 }
 
-/* 让 #app 充满整个页面 */
+/* Make #app fill the entire page */
 #app {
   width: 100%;
   height: 100%;
@@ -47,29 +47,29 @@ html, body {
   flex-direction: column;
 }
 
-/* 让导航栏铺满顶部 */
+/* Make the navigation bar fill the top */
 .navbar {
   width: 100%;
-  height: 60px; /* 固定高度 */
+  height: 60px;
   background-color: #1d72b8;
   display: flex;
-  justify-content: space-around; /* 让选项均匀分布 */
+  justify-content: space-around;
   align-items: center;
-  position: fixed; /* 固定在顶部 */
+  position: fixed;
   top: 0;
   left: 0;
   z-index: 1000;
 }
 
-/* 让导航栏的文字可见 */
+/* Make navigation bar text visible */
 .navbar nav {
   display: flex;
   width: 100%;
-  justify-content: space-around; /* 选项均匀分布 */
+  justify-content: space-around;
   align-items: center;
 }
 
-/* 导航栏选项样式 */
+/* Navigation bar option styles */
 .navbar nav a {
   color: white;
   text-decoration: none;
@@ -78,7 +78,7 @@ html, body {
   padding: 10px;
 }
 
-/* 让 `ShortenUrlForm.vue` 居中 */
+/* Center `ShortenUrlForm.vue` */
 .content {
   width: 100%;
   height: 100%;
@@ -86,7 +86,7 @@ html, body {
   justify-content: center;
   align-items: center;
   flex-grow: 1;
-  margin-top: 60px; /* 避免内容被导航栏遮挡 */
+  margin-top: 60px;
 }
 </style>
 
