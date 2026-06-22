@@ -1,15 +1,18 @@
 # app.yaml
 
 runtime: java17
-entrypoint: java -jar target/snaplink-1.0.0.jar  # Updated JAR file name
-service: snaplink                        # Updated service name
+entrypoint: java -jar target/snaplink-1.0.0.jar
+service: snaplink
 
-service_account: sp25-comp539-team1-snaplink@rice-comp-539-spring-2022.iam.gserviceaccount.com
+# Set this to the service account for your own GCP project before deploying.
+service_account: your-service-account@your-gcp-project.iam.gserviceaccount.com
 
-
-# Environment Variables for Google Cloud Authentication
+# Configure these in App Engine or Secret Manager for production deployments.
 env_variables:
-  GOOGLE_APPLICATION_CREDENTIALS: rice-comp-539-spring-2022-423671897e9b.json
-
+  GCP_PROJECT_ID: your-gcp-project-id
+  GCP_BIGTABLE_INSTANCE_ID: your-bigtable-instance-id
+  POSTMARK_SERVER_TOKEN: your-postmark-server-token
+  POSTMARK_SIGNUP_TEMPLATE_ID: "0"
+  POSTMARK_RESET_PASSWORD_TEMPLATE_ID: "0"
 
 

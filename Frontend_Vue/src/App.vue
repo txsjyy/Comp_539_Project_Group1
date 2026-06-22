@@ -26,7 +26,7 @@ const router = useRouter();
 const userStore = useUserStore();
 
 const logout = () => {
-  userStore.logout();
+  userStore.clearUser();
   router.push('/login');
 };
 </script>
@@ -89,6 +89,5 @@ html, body {
   margin-top: 60px;
 }
 </style>
-
 
 

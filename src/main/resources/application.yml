@@ -7,27 +7,26 @@ spring:
 
 # src/main/resources/application.yml
 postmark:
-  server-token: 5a4ba68b-b180-4d53-94d3-19f2fc9b96ff
+  server-token: ${POSTMARK_SERVER_TOKEN:}
   template:
-    reset-password-id: 39757986
-    signup-id:         39763891     # ← your “Welcome” template ID
+    reset-password-id: ${POSTMARK_RESET_PASSWORD_TEMPLATE_ID:0}
+    signup-id: ${POSTMARK_SIGNUP_TEMPLATE_ID:0}
 
 app:
   mail:
-    from: cw206@rice.edu
+    from: ${APP_MAIL_FROM:noreply@example.com}
 
 
-# values for your “Welcome” template
-  product-name:    SnapLink
-  login-url:       https://snaplink.com/login
-  support-email:   support@snaplink.com
-  live-chat-url:   https://snaplink.com/live-chat
-  sender-name:     SnapLink Support
-  help-url:        https://snaplink.com/help
-  support-url: https://snaplink.com/support
+# values for the email templates
+  product-name: ${APP_PRODUCT_NAME:SnapLink}
+  login-url: ${APP_LOGIN_URL:http://localhost:5173/login}
+  support-email: ${APP_SUPPORT_EMAIL:support@example.com}
+  live-chat-url: ${APP_LIVE_CHAT_URL:https://example.com/live-chat}
+  sender-name: ${APP_SENDER_NAME:SnapLink Support}
+  help-url: ${APP_HELP_URL:https://example.com/help}
+  support-url: ${APP_SUPPORT_URL:https://example.com/support}
 
   security:
-    # ← this was missing
-    reset-token-expiration-hours: 1
+    reset-token-expiration-hours: ${APP_RESET_TOKEN_EXPIRATION_HOURS:1}
   trial:
-      length-days:   14
+    length-days: ${APP_TRIAL_LENGTH_DAYS:14}

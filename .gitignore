@@ -15,6 +15,12 @@ rice-comp-539-spring-2022-423671897e9b.json
 # Log files
 *.log
 
+# Local environment files
+.env
+.env.local
+.env.*.local
+Frontend_Vue/.env
+
 # Temporary files
 *.tmp
 *.swp
@@ -23,5 +29,4 @@ rice-comp-539-spring-2022-423671897e9b.json
 
 # IDE ignore
 .DS_Store
-
 

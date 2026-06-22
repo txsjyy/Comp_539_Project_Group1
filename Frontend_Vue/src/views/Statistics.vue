@@ -74,7 +74,7 @@ const chartCanvas2 = ref<HTMLCanvasElement | null>(null);
 let chart2: Chart | null = null;
 const selectedRange = ref(3); // -3 ~ +3 days range
 
-const API = 'https://snaplink-dot-rice-comp-539-spring-2022.uk.r.appspot.com';
+const API = import.meta.env.VITE_API_BASE_URL;
 
 // Format timestamp to local string
 const formatTimestamp = (timestamp: string) => {
